@@ -54,6 +54,14 @@ impl Square {
     }
 }
 
+impl<T> Index<Square> for [T; 64] {
+    type Output = T;
+
+    fn index(&self, index: Square) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
 #[repr(u8)]
 pub enum File {
     A,

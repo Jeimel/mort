@@ -1,3 +1,5 @@
+use std::ops::Index;
+
 use super::BitBoard;
 
 #[repr(transparent)]
@@ -9,12 +11,28 @@ pub enum Color {
     Black,
 }
 
+impl<T> Index<Color> for [T; 2] {
+    type Output = T;
+
+    fn index(&self, index: Color) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
 #[repr(u8)]
 pub enum PieceType {
     Pawn,
     Knight,
     Bishop,
     Rook,
+}
+
+impl<T> Index<PieceType> for [T; 4] {
+    type Output = T;
+
+    fn index(&self, index: PieceType) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
 }
 
 #[rustfmt::skip]

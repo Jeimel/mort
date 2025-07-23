@@ -20,7 +20,7 @@ macro_rules! gen_lookup {
     }};
 }
 
-// Index precomputed diagonal attacks for pawns.
+/// Index precomputed diagonal attacks for pawns.
 pub fn pawn(stm: Color, sq: Square) -> BitBoard {
     const ATTACKS: [[BitBoard; 64]; 2] = [
         gen_lookup!(|bb| BitBoard(
@@ -32,4 +32,16 @@ pub fn pawn(stm: Color, sq: Square) -> BitBoard {
     ];
 
     ATTACKS[stm][sq]
+}
+
+/// Index precomputed attacks in all eight directions for the king.
+pub fn king(sq: Square) -> BitBoard {
+    const ATTACKS: [BitBoard; 64] = gen_lookup!(|bb| {
+        let attacks = ((bb << 1) & !File::A.bitboard().0) | ((bb >> 1) & !File::H.bitboard().0);
+        let king = bb | attacks;
+
+        BitBoard(attacks | (king << 8) | (king >> 8))
+    });
+
+    ATTACKS[sq]
 }

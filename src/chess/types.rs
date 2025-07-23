@@ -74,6 +74,12 @@ pub enum File {
     H,
 }
 
+impl File {
+    pub const fn bitboard(self) -> BitBoard {
+        BitBoard(0x101010101010101u64 << (self as u8))
+    }
+}
+
 #[repr(u8)]
 pub enum Rank {
     One,
@@ -84,4 +90,10 @@ pub enum Rank {
     Six,
     Seven,
     Eight,
+}
+
+impl Rank {
+    pub const fn bitboard(self) -> BitBoard {
+        BitBoard(0xffu64 << (self as u8 * 8))
+    }
 }

@@ -34,6 +34,23 @@ pub fn pawn(stm: Color, sq: Square) -> BitBoard {
     ATTACKS[stm][sq]
 }
 
+/// Index precomputed attacks for knights.
+pub fn knight(sq: Square) -> BitBoard {
+    const ATTACKS: [BitBoard; 64] = gen_lookup!(|bb| {
+        let l1 = (bb >> 1) & !File::A.bitboard().0;
+        let l2 = (bb >> 2) & !File::A.bitboard().0 & !File::B.bitboard().0;
+        let r1 = (bb << 1) & !File::H.bitboard().0;
+        let r2 = (bb << 2) & !File::H.bitboard().0 & !File::G.bitboard().0;
+
+        let h1 = l1 | r1;
+        let h2 = l2 | r2;
+
+        BitBoard((h1 << 16) | (h1 >> 16) | (h2 << 8) | (h2 >> 8))
+    });
+
+    ATTACKS[sq]
+}
+
 /// Index precomputed attacks in all eight directions for the king.
 pub fn king(sq: Square) -> BitBoard {
     const ATTACKS: [BitBoard; 64] = gen_lookup!(|bb| {

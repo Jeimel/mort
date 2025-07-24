@@ -1,3 +1,4 @@
+pub mod attacks;
 mod bitboard;
 pub mod types;
 

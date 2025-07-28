@@ -49,6 +49,15 @@ pub enum Square {
 }
 
 impl Square {
+    pub const fn new(index: u8) -> Option<Self> {
+        if index < 64 {
+            // Safety: `index` has a corresponding `Square` variant
+            Some(unsafe { std::mem::transmute(index) })
+        } else {
+            None
+        }
+    }
+
     pub const fn bitboard(self) -> BitBoard {
         BitBoard(1u64 << (self as u8))
     }
@@ -75,6 +84,15 @@ pub enum File {
 }
 
 impl File {
+    pub const fn new(index: u8) -> Option<Self> {
+        if index < 8 {
+            // Safety: `index` has a corresponding `File` variant
+            Some(unsafe { std::mem::transmute(index) })
+        } else {
+            None
+        }
+    }
+
     pub const fn bitboard(self) -> BitBoard {
         BitBoard(0x101010101010101u64 << (self as u8))
     }
@@ -93,6 +111,15 @@ pub enum Rank {
 }
 
 impl Rank {
+    pub const fn new(index: u8) -> Option<Self> {
+        if index < 8 {
+            // Safety: `index` has a corresponding `Rank` variant
+            Some(unsafe { std::mem::transmute(index) })
+        } else {
+            None
+        }
+    }
+
     pub const fn bitboard(self) -> BitBoard {
         BitBoard(0xffu64 << (self as u8 * 8))
     }

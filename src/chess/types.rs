@@ -37,6 +37,7 @@ impl<T> Index<PieceType> for [T; 4] {
 
 #[rustfmt::skip]
 #[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -60,6 +61,14 @@ impl Square {
 
     pub const fn bitboard(self) -> BitBoard {
         BitBoard(1u64 << (self as u8))
+    }
+
+    pub const fn file(self) -> File {
+        File::new(self as u8 & 7).unwrap()
+    }
+
+    pub const fn rank(self) -> Rank {
+        Rank::new(self as u8 >> 3).unwrap()
     }
 }
 

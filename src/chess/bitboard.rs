@@ -5,7 +5,9 @@ use std::ops::BitOr;
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct BitBoard(pub u64);
 
-impl BitBoard {}
+impl BitBoard {
+    pub const EMPTY: BitBoard = BitBoard(0);
+}
 
 impl BitOr for BitBoard {
     type Output = BitBoard;

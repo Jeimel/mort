@@ -1,7 +1,4 @@
-use super::{
-    BitBoard,
-    types::{File, Rank, Square},
-};
+use types::{BitBoard, File, Rank, Square};
 
 // Magics are taken from https://talkchess.com/forum/viewtopic.php?t=64790&start=10
 

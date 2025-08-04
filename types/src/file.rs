@@ -25,4 +25,11 @@ impl File {
     pub const fn bitboard(self) -> BitBoard {
         BitBoard(0x101010101010101u64 << (self as u8))
     }
+
+    pub fn checked_add(self, delta: i8) -> Option<Self> {
+        (self as i8)
+            .checked_add(delta)
+            .and_then(|v| u8::try_from(v).ok())
+            .and_then(File::new)
+    }
 }

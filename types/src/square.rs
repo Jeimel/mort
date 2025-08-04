@@ -26,6 +26,11 @@ impl Square {
         }
     }
 
+    pub const fn from(file: File, rank: Rank) -> Self {
+        // Safety: the types `File` and `Rank` form a valid `Square`
+        unsafe { std::mem::transmute(rank as u8 * 8 + file as u8) }
+    }
+
     pub const fn bitboard(self) -> BitBoard {
         BitBoard(1u64 << (self as u8))
     }

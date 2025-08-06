@@ -1,4 +1,4 @@
-use types::{BitBoard, File, Rank, Square};
+use types::{BitBoard, Square, slider::BISHOP, slider::ROOK};
 
 // Magics are taken from https://talkchess.com/forum/viewtopic.php?t=64790&start=10
 
@@ -32,11 +32,11 @@ pub fn bishop_magic_index(sq: Square, blockers: BitBoard) -> usize {
 }
 
 macro_rules! gen_entries {
-    ($blockers:ident, $magics:expr) => {{
+    ($slider:ident, $magics:expr) => {{
         let (magics, mut entries, mut i) = ($magics, [BlackMagicEntry::EMPTY; 64], 0);
 
         while i < magics.len() {
-            let neg_mask = BitBoard(!$blockers(Square::new(i as u8).unwrap()).0);
+            let neg_mask = BitBoard(!$slider.blockers(Square::new(i as u8).unwrap()).0);
             let (magic, offset) = magics[i];
 
             entries[i] = BlackMagicEntry {
@@ -52,61 +52,12 @@ macro_rules! gen_entries {
     }};
 }
 
-const fn rook_blockers(sq: Square) -> BitBoard {
-    let file = sq.file().bitboard().0 & !(File::A.bitboard().0 | File::H.bitboard().0);
-    let rank = sq.rank().bitboard().0 & !(Rank::One.bitboard().0 | Rank::Eight.bitboard().0);
-
-    BitBoard((file | rank) & !sq.bitboard().0)
-}
-
-const fn bishop_blockers(sq: Square) -> BitBoard {
-    const DIAGONALS: [u64; 15] = [
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0020,
-        0x0000_0000_0000_2010,
-        0x0000_0000_0020_1000,
-        0x0000_0020_1000_0000,
-        0x0020_1000_0000_0000,
-        0x2010_0000_0000_0000,
-        0x0010_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-    ];
-
-    const ANTI_DIAGONALS: [u64; 15] = [
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0004,
-        0x0000_0000_0004_0800,
-        0x0000_0004_0800_0000,
-        0x0004_0800_0000_0000,
-        0x0408_0000_0000_0000,
-        0x0008_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-        0x0000_0000_0000_0000,
-    ];
-
-    let (file, rank) = (sq.file() as usize, sq.rank() as usize);
-
-    BitBoard((DIAGONALS[7 + rank - file] | ANTI_DIAGONALS[rank + file]) & !sq.bitboard().0)
-}
-
 const ROOK_SHIFT: u8 = 64 - 12;
 
 const BISHOP_SHIFT: u8 = 64 - 9;
 
 const ROOK_MAGICS: &[BlackMagicEntry; 64] = &gen_entries!(
-    rook_blockers,
+    ROOK,
     [
         (0x80280013FF84FFFF, 10890),
         (0x5FFBFEFDFEF67FFF, 50579),
@@ -176,7 +127,7 @@ const ROOK_MAGICS: &[BlackMagicEntry; 64] = &gen_entries!(
 );
 
 const BISHOP_MAGICS: &[BlackMagicEntry; 64] = &gen_entries!(
-    bishop_blockers,
+    BISHOP,
     [
         (0xA7020080601803D8, 60984),
         (0x13802040400801F1, 66046),

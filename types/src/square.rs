@@ -31,6 +31,16 @@ impl Square {
         unsafe { std::mem::transmute(rank as u8 * 8 + file as u8) }
     }
 
+    pub const fn try_delta(self, delta_file: i8, delta_rank: i8) -> Option<Self> {
+        let file = self.file().try_delta(delta_file);
+        let rank = self.rank().try_delta(delta_rank);
+
+        match (file, rank) {
+            (Some(file), Some(rank)) => Some(Self::from(file, rank)),
+            _ => None,
+        }
+    }
+
     pub const fn bitboard(self) -> BitBoard {
         BitBoard(1u64 << (self as u8))
     }

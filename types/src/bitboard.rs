@@ -14,12 +14,24 @@ impl BitBoard {
         SquareIter::new(self)
     }
 
+    pub fn iter_subset(self) -> SquareSubsetIter {
+        SquareSubsetIter::new(self)
+    }
+
+    pub fn wrapping_sub(self, rhs: Self) -> Self {
+        BitBoard(self.0.wrapping_sub(rhs.0))
+    }
+
+    pub fn is_empty(self) -> bool {
+        self == Self::EMPTY
+    }
+
     pub fn index_lsb(self) -> u8 {
         self.0.trailing_zeros() as u8
     }
 
     pub fn reset_lsb(self) -> Self {
-        self & Self(self.0.wrapping_sub(1))
+        self & self.wrapping_sub(BitBoard(0))
     }
 }
 
@@ -69,5 +81,36 @@ impl Iterator for SquareIter {
         self.bb = self.bb.reset_lsb();
 
         Square::new(lsb)
+    }
+}
+
+pub struct SquareSubsetIter {
+    bb: BitBoard,
+    subset: BitBoard,
+    finished: bool,
+}
+
+impl SquareSubsetIter {
+    pub const fn new(bb: BitBoard) -> Self {
+        Self {
+            bb,
+            subset: BitBoard::EMPTY,
+            finished: false,
+        }
+    }
+}
+
+impl Iterator for SquareSubsetIter {
+    type Item = BitBoard;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.finished {
+            return None;
+        }
+
+        let current = self.subset;
+        self.subset = self.subset.wrapping_sub(self.bb) & self.bb;
+
+        Some(current)
     }
 }

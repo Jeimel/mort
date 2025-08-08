@@ -1,33 +1,38 @@
-use crate::{BitBoard, Square, slider::BISHOP, slider::ROOK};
+use crate::{Square, SquareSet, slider::BISHOP, slider::ROOK};
 
 // Magics are taken from https://talkchess.com/forum/viewtopic.php?t=64790&start=10
 
 pub struct BlackMagicEntry {
-    neg_mask: BitBoard,
+    neg_mask: SquareSet,
     magic: u64,
     offset: u32,
 }
 
 impl BlackMagicEntry {
     const EMPTY: BlackMagicEntry = BlackMagicEntry {
-        neg_mask: BitBoard::EMPTY,
+        neg_mask: SquareSet::EMPTY,
         magic: 0,
         offset: 0,
     };
 }
 
-fn magic_index(magics: &[BlackMagicEntry; 64], shift: u8, sq: Square, blockers: BitBoard) -> usize {
+fn magic_index(
+    magics: &[BlackMagicEntry; 64],
+    shift: u8,
+    sq: Square,
+    blockers: SquareSet,
+) -> usize {
     let entry = &magics[sq];
     let hash = (blockers | entry.neg_mask).0.wrapping_mul(entry.magic);
 
     entry.offset as usize + (hash >> shift) as usize
 }
 
-pub fn rook_magic_index(sq: Square, blockers: BitBoard) -> usize {
+pub fn rook_magic_index(sq: Square, blockers: SquareSet) -> usize {
     magic_index(ROOK_MAGICS, ROOK_SHIFT, sq, blockers)
 }
 
-pub fn bishop_magic_index(sq: Square, blockers: BitBoard) -> usize {
+pub fn bishop_magic_index(sq: Square, blockers: SquareSet) -> usize {
     magic_index(BISHOP_MAGICS, BISHOP_SHIFT, sq, blockers)
 }
 
@@ -36,7 +41,7 @@ macro_rules! gen_entries {
         let (magics, mut entries, mut i) = ($magics, [BlackMagicEntry::EMPTY; 64], 0);
 
         while i < magics.len() {
-            let neg_mask = BitBoard(!$slider.blockers(Square::new(i as u8).unwrap()).0);
+            let neg_mask = SquareSet(!$slider.blockers(Square::new(i as u8).unwrap()).0);
             let (magic, offset) = magics[i];
 
             entries[i] = BlackMagicEntry {

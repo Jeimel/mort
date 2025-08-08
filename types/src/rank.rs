@@ -1,4 +1,4 @@
-use crate::BitBoard;
+use crate::SquareSet;
 
 #[repr(u8)]
 pub enum Rank {
@@ -31,7 +31,7 @@ impl Rank {
         Self::new(index as u8)
     }
 
-    pub const fn bitboard(self) -> BitBoard {
-        BitBoard(0xffu64 << (self as u8 * 8))
+    pub const fn set(self) -> SquareSet {
+        SquareSet(0xffu64 << (self as u8 * 8))
     }
 }

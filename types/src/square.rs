@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::{BitBoard, File, Rank};
+use crate::{File, Rank, SquareSet};
 
 #[rustfmt::skip]
 #[repr(u8)]
@@ -41,8 +41,8 @@ impl Square {
         }
     }
 
-    pub const fn bitboard(self) -> BitBoard {
-        BitBoard(1u64 << (self as u8))
+    pub const fn set(self) -> SquareSet {
+        SquareSet(1u64 << (self as u8))
     }
 
     pub const fn file(self) -> File {

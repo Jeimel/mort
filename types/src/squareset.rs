@@ -5,10 +5,10 @@ use crate::Square;
 /// A `BitBoard` represents a board as array of 64 bits.
 #[repr(transparent)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
-pub struct BitBoard(pub u64);
+pub struct SquareSet(pub u64);
 
-impl BitBoard {
-    pub const EMPTY: BitBoard = BitBoard(0);
+impl SquareSet {
+    pub const EMPTY: SquareSet = SquareSet(0);
 
     pub fn iter(self) -> SquareIter {
         SquareIter::new(self)
@@ -19,7 +19,7 @@ impl BitBoard {
     }
 
     pub fn wrapping_sub(self, rhs: Self) -> Self {
-        BitBoard(self.0.wrapping_sub(rhs.0))
+        Self(self.0.wrapping_sub(rhs.0))
     }
 
     pub fn is_empty(self) -> bool {
@@ -31,41 +31,41 @@ impl BitBoard {
     }
 
     pub fn reset_lsb(self) -> Self {
-        self & self.wrapping_sub(BitBoard(0))
+        self & self.wrapping_sub(Self(0))
     }
 }
 
-impl BitOr for BitBoard {
-    type Output = BitBoard;
+impl BitOr for SquareSet {
+    type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        BitBoard(self.0 | rhs.0)
+        Self(self.0 | rhs.0)
     }
 }
 
-impl BitAnd for BitBoard {
-    type Output = BitBoard;
+impl BitAnd for SquareSet {
+    type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        BitBoard(self.0 & rhs.0)
+        Self(self.0 & rhs.0)
     }
 }
 
-impl Not for BitBoard {
-    type Output = BitBoard;
+impl Not for SquareSet {
+    type Output = Self;
 
     fn not(self) -> Self::Output {
-        BitBoard(!self.0)
+        Self(!self.0)
     }
 }
 
 pub struct SquareIter {
-    bb: BitBoard,
+    set: SquareSet,
 }
 
 impl SquareIter {
-    pub const fn new(bb: BitBoard) -> Self {
-        Self { bb }
+    pub const fn new(set: SquareSet) -> Self {
+        Self { set }
     }
 }
 
@@ -73,35 +73,35 @@ impl Iterator for SquareIter {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.bb == BitBoard::EMPTY {
+        if self.set == SquareSet::EMPTY {
             return None;
         }
 
-        let lsb = self.bb.index_lsb();
-        self.bb = self.bb.reset_lsb();
+        let lsb = self.set.index_lsb();
+        self.set = self.set.reset_lsb();
 
         Square::new(lsb)
     }
 }
 
 pub struct SquareSubsetIter {
-    bb: BitBoard,
-    subset: BitBoard,
+    set: SquareSet,
+    subset: SquareSet,
     finished: bool,
 }
 
 impl SquareSubsetIter {
-    pub const fn new(bb: BitBoard) -> Self {
+    pub const fn new(set: SquareSet) -> Self {
         Self {
-            bb,
-            subset: BitBoard::EMPTY,
+            set,
+            subset: SquareSet::EMPTY,
             finished: false,
         }
     }
 }
 
 impl Iterator for SquareSubsetIter {
-    type Item = BitBoard;
+    type Item = SquareSet;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.finished {
@@ -109,7 +109,7 @@ impl Iterator for SquareSubsetIter {
         }
 
         let current = self.subset;
-        self.subset = self.subset.wrapping_sub(self.bb) & self.bb;
+        self.subset = self.subset.wrapping_sub(self.set) & self.set;
 
         Some(current)
     }

@@ -1,6 +1,6 @@
 pub mod magic;
 
-use crate::{BitBoard, Square};
+use crate::{Square, SquareSet};
 
 pub struct Slider {
     deltas: [(i8, i8); 4],
@@ -15,17 +15,17 @@ pub const BISHOP: Slider = Slider {
 };
 
 impl Slider {
-    pub fn moves(&self, sq: Square, blockers: BitBoard) -> BitBoard {
-        let mut moves = BitBoard::EMPTY;
+    pub fn moves(&self, sq: Square, blockers: SquareSet) -> SquareSet {
+        let mut moves = SquareSet::EMPTY;
 
         for &(delta_file, delta_rank) in &self.deltas {
             let mut ray = sq;
 
-            while (ray.bitboard() & blockers) == BitBoard::EMPTY {
+            while (ray.set() & blockers) == SquareSet::EMPTY {
                 match ray.try_delta(delta_file, delta_rank) {
                     Some(sq) => {
                         ray = sq;
-                        moves = moves | ray.bitboard();
+                        moves = moves | ray.set();
                     }
                     None => break,
                 }
@@ -35,7 +35,7 @@ impl Slider {
         moves
     }
 
-    pub const fn blockers(&self, sq: Square) -> BitBoard {
+    pub const fn blockers(&self, sq: Square) -> SquareSet {
         let (mut blockers, mut i) = (0, 0);
 
         while i < self.deltas.len() {
@@ -43,15 +43,15 @@ impl Slider {
             let mut ray = sq;
 
             while let Some(sq) = ray.try_delta(delta_file, delta_rank) {
-                blockers = blockers | ray.bitboard().0;
+                blockers = blockers | ray.set().0;
                 ray = sq;
             }
 
             i += 1;
         }
 
-        blockers = blockers & !sq.bitboard().0;
+        blockers = blockers & !sq.set().0;
 
-        BitBoard(blockers)
+        SquareSet(blockers)
     }
 }

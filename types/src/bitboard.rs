@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, Not, Sub};
+use std::ops::{BitAnd, BitOr, Not};
 
 use crate::Square;
 
@@ -13,13 +13,13 @@ impl BitBoard {
     pub fn iter(self) -> SquareIter {
         SquareIter::new(self)
     }
-}
 
-impl Sub<u64> for BitBoard {
-    type Output = BitBoard;
+    pub fn index_lsb(self) -> u8 {
+        self.0.trailing_zeros() as u8
+    }
 
-    fn sub(self, rhs: u64) -> Self::Output {
-        BitBoard(self.0 - rhs)
+    pub fn reset_lsb(self) -> Self {
+        self & Self(self.0.wrapping_sub(1))
     }
 }
 
@@ -47,11 +47,13 @@ impl Not for BitBoard {
     }
 }
 
-pub struct SquareIter(BitBoard);
+pub struct SquareIter {
+    bb: BitBoard,
+}
 
 impl SquareIter {
     pub const fn new(bb: BitBoard) -> Self {
-        Self(bb)
+        Self { bb }
     }
 }
 
@@ -59,12 +61,12 @@ impl Iterator for SquareIter {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.0 == BitBoard::EMPTY {
+        if self.bb == BitBoard::EMPTY {
             return None;
         }
 
-        let lsb = self.0.0.trailing_zeros() as u8;
-        self.0 = self.0 & (self.0 - 1);
+        let lsb = self.bb.index_lsb();
+        self.bb = self.bb.reset_lsb();
 
         Square::new(lsb)
     }

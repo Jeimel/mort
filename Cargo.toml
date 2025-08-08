@@ -4,4 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-types = { path = "./types" } 
+types = { path = "./types" }
+
+[build-dependencies]
+types = { path = "./types" }

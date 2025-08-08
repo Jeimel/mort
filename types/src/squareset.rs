@@ -110,6 +110,7 @@ impl Iterator for SquareSubsetIter {
 
         let current = self.subset;
         self.subset = self.subset.wrapping_sub(self.set) & self.set;
+        self.finished = self.subset.is_empty();
 
         Some(current)
     }

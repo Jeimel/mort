@@ -57,6 +57,8 @@ macro_rules! gen_entries {
     }};
 }
 
+pub const LOOKUP_TABLE_SIZE: usize = 87988;
+
 const ROOK_SHIFT: u8 = 64 - 12;
 
 const BISHOP_SHIFT: u8 = 64 - 9;

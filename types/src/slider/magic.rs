@@ -1,8 +1,8 @@
-use types::{BitBoard, Square, slider::BISHOP, slider::ROOK};
+use crate::{BitBoard, Square, slider::BISHOP, slider::ROOK};
 
 // Magics are taken from https://talkchess.com/forum/viewtopic.php?t=64790&start=10
 
-struct BlackMagicEntry {
+pub struct BlackMagicEntry {
     neg_mask: BitBoard,
     magic: u64,
     offset: u32,

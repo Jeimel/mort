@@ -1,3 +1,5 @@
+pub mod magic;
+
 use crate::{BitBoard, Square};
 
 pub struct Slider {

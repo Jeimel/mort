@@ -8,7 +8,11 @@ use crate::Square;
 pub struct SquareSet(pub u64);
 
 impl SquareSet {
-    pub const EMPTY: SquareSet = SquareSet(0);
+    pub const EMPTY: SquareSet = Self(0);
+
+    pub fn set(mut self, sq: Square) {
+        self = self | sq.set();
+    }
 
     pub fn iter(self) -> SquareIter {
         SquareIter::new(self)

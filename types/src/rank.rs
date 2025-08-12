@@ -1,6 +1,7 @@
 use crate::SquareSet;
 
 #[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum Rank {
     One,
     Two,

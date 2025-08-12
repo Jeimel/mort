@@ -1,6 +1,9 @@
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
+
+use crate::TypeParseError;
 
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum Color {
     White,
     Black,
@@ -15,14 +18,6 @@ impl Color {
             None
         }
     }
-
-    pub fn from_fen(color: &str) -> Self {
-        if color == "w" {
-            Color::White
-        } else {
-            Color::Black
-        }
-    }
 }
 
 impl<T> Index<Color> for [T; 2] {
@@ -30,5 +25,32 @@ impl<T> Index<Color> for [T; 2] {
 
     fn index(&self, index: Color) -> &Self::Output {
         unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> IndexMut<Color> for [T; 2] {
+    fn index_mut(&mut self, index: Color) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
+    }
+}
+
+impl TryFrom<&str> for Color {
+    type Error = TypeParseError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "w" => Ok(Color::White),
+            "b" => Ok(Color::Black),
+            _ => Err(TypeParseError::InvalidColorSymbol),
+        }
+    }
+}
+
+impl From<bool> for Color {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Color::White,
+            false => Color::Black,
+        }
     }
 }

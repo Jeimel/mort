@@ -1,4 +1,4 @@
-use std::ops::Index;
+use crate::TypeParseError;
 
 #[repr(u8)]
 pub enum PieceType {
@@ -6,12 +6,22 @@ pub enum PieceType {
     Knight,
     Bishop,
     Rook,
+    Queen,
+    King,
 }
 
-impl<T> Index<PieceType> for [T; 4] {
-    type Output = T;
+impl TryFrom<char> for PieceType {
+    type Error = TypeParseError;
 
-    fn index(&self, index: PieceType) -> &Self::Output {
-        unsafe { self.get_unchecked(index as usize) }
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value.to_ascii_lowercase() {
+            'p' => Ok(PieceType::Pawn),
+            'n' => Ok(PieceType::Knight),
+            'b' => Ok(PieceType::Bishop),
+            'r' => Ok(PieceType::Rook),
+            'q' => Ok(PieceType::Queen),
+            'k' => Ok(PieceType::King),
+            _ => Err(TypeParseError::InvalidPieceSymbol),
+        }
     }
 }

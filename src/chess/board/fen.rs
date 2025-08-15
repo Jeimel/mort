@@ -1,29 +1,49 @@
-use types::{Castling, Color, File, PieceType, Rank, Square, SquareSet};
+use std::{error::Error, fmt::Display};
 
-use super::fen::FenParseError;
+use types::{Castling, Color, File, PieceType, Rank, Square, TypeParseError};
 
-pub struct Board {
-    colors: [SquareSet; 2],
-    kings: [Square; 2],
-    rooks: SquareSet,
-    bishops: SquareSet,
-    pawns: SquareSet,
-    castling: Castling,
-    en_passant: Option<Square>,
+use super::Board;
+
+#[derive(Debug)]
+pub enum FenParseError {
+    InvalidLength(usize),
+    InvalidSymbol(TypeParseError),
+    InvalidBoard,
+    InvalidColor,
+    InvalidCastling,
+    InvalidEnPassant,
+    InvalidHalfMove,
+    InvalidFullMove,
 }
 
-impl Board {
-    pub(super) const EMPTY: Board = Self {
-        colors: [SquareSet::EMPTY; 2],
-        kings: [Square::A1; 2],
-        rooks: SquareSet::EMPTY,
-        bishops: SquareSet::EMPTY,
-        pawns: SquareSet::EMPTY,
-        castling: Castling::EMPTY,
-        en_passant: None,
-    };
+impl Display for FenParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FenParseError::InvalidLength(len) => write!(f, "Invalid length: {}", len),
+            FenParseError::InvalidSymbol(error) => write!(f, "{}", error),
+            FenParseError::InvalidBoard => todo!(),
+            FenParseError::InvalidColor => todo!(),
+            FenParseError::InvalidCastling => todo!(),
+            FenParseError::InvalidEnPassant => todo!(),
+            FenParseError::InvalidHalfMove => todo!(),
+            FenParseError::InvalidFullMove => todo!(),
+        }
+    }
+}
 
-    pub(super) fn from_fen(&mut self, fen: &str) -> Result<(Color, u16, u8), FenParseError> {
+impl From<TypeParseError> for FenParseError {
+    fn from(value: TypeParseError) -> Self {
+        Self::InvalidSymbol(value)
+    }
+}
+
+impl Error for FenParseError {}
+
+impl Board {
+    pub(in crate::chess) fn from_fen(
+        &mut self,
+        fen: &str,
+    ) -> Result<(Color, u16, u8), FenParseError> {
         macro_rules! ok_or {
             ($result:expr, $err:ident) => {
                 $result.ok_or_else(|| FenParseError::$err)?
@@ -78,26 +98,5 @@ impl Board {
         let rule50_ply = ok_or!(fields[4].parse().ok(), InvalidHalfMove);
 
         Ok((stm, ply, rule50_ply))
-    }
-
-    pub(super) fn clear(&mut self) {
-        *self = Self::EMPTY;
-    }
-
-    fn set(&mut self, sq: Square, color: Color, piece: PieceType) {
-        self.colors[color].set(sq);
-
-        if matches!(piece, PieceType::Bishop | PieceType::Queen) {
-            self.bishops.set(sq);
-        }
-        if matches!(piece, PieceType::Rook | PieceType::Queen) {
-            self.rooks.set(sq);
-        }
-
-        match piece {
-            PieceType::Pawn => self.pawns.set(sq),
-            PieceType::King => self.kings[color] = sq,
-            _ => {}
-        }
     }
 }

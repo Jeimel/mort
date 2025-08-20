@@ -1,8 +1,8 @@
-use std::ops::{BitAnd, BitOr, Not};
+use std::ops::{BitAnd, BitOr, Sub};
 
 use crate::Square;
 
-/// A `BitBoard` represents a board as array of 64 bits.
+/// A `SquareSet` represents a board as array of 64 bits.
 #[repr(transparent)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct SquareSet(pub u64);
@@ -10,8 +10,12 @@ pub struct SquareSet(pub u64);
 impl SquareSet {
     pub const EMPTY: SquareSet = Self(0);
 
-    pub fn set(mut self, sq: Square) {
-        self = self | sq.set();
+    pub fn set(&mut self, sq: Square) {
+        self.0 = self.0 | sq.set().0;
+    }
+
+    pub fn is_set(&self, sq: Square) -> bool {
+        (self.0 & sq.set().0) != 0
     }
 
     pub fn iter(self) -> SquareIter {
@@ -35,10 +39,20 @@ impl SquareSet {
     }
 
     pub fn reset_lsb(self) -> Self {
-        self & self.wrapping_sub(Self(0))
+        self & self.wrapping_sub(Self(1))
     }
 }
 
+/// Calculates the difference between two square sets.
+impl Sub for SquareSet {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 & !rhs.0)
+    }
+}
+
+/// Calculates the union between two square sets.
 impl BitOr for SquareSet {
     type Output = Self;
 
@@ -47,19 +61,12 @@ impl BitOr for SquareSet {
     }
 }
 
+/// Calculates the intersection between two square sets.
 impl BitAnd for SquareSet {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
         Self(self.0 & rhs.0)
-    }
-}
-
-impl Not for SquareSet {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        Self(!self.0)
     }
 }
 

@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
 use crate::{File, Rank, SquareSet};
 
@@ -63,5 +63,11 @@ impl<T> Index<Square> for [T; 64] {
 
     fn index(&self, index: Square) -> &Self::Output {
         unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> IndexMut<Square> for [T; 64] {
+    fn index_mut(&mut self, index: Square) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }

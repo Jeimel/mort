@@ -41,7 +41,7 @@ impl TryFrom<&str> for Color {
         match value {
             "w" => Ok(Color::White),
             "b" => Ok(Color::Black),
-            _ => Err(TypeParseError::InvalidColorSymbol),
+            _ => Err(TypeParseError::InvalidColorSymbol(value.to_string())),
         }
     }
 }

@@ -37,7 +37,7 @@ impl TryFrom<char> for PieceType {
             'r' => Ok(PieceType::Rook),
             'q' => Ok(PieceType::Queen),
             'k' => Ok(PieceType::King),
-            _ => Err(TypeParseError::InvalidPieceSymbol),
+            _ => Err(TypeParseError::InvalidPieceSymbol(value)),
         }
     }
 }

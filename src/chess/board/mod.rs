@@ -2,6 +2,8 @@ mod fen;
 
 pub use fen::FenParseError;
 
+use std::fmt::Display;
+
 use types::{Castling, Color, PieceType, Square, SquareSet};
 
 pub struct Board {
@@ -12,6 +14,41 @@ pub struct Board {
     pawns: SquareSet,
     castling: Castling,
     en_passant: Option<Square>,
+}
+
+impl Display for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        const DELIMITER: &'static str = concat!("+---+---+---+---+---+---+---+---+", '\n');
+
+        let mut mailbox = [' '; 64];
+        for piece in PieceType::iter() {
+            let mask = self.get(piece);
+            let symbol = char::from(piece);
+
+            for sq in mask.iter() {
+                mailbox[sq] = if self.color(Color::White).is_set(sq) {
+                    symbol.to_ascii_uppercase()
+                } else {
+                    symbol
+                };
+            }
+        }
+
+        let mut pos = String::from(DELIMITER);
+        for row in (0..8).rev() {
+            let start = row * 8;
+
+            let mut rank = String::new();
+            for c in &mailbox[start..(start + 8)] {
+                rank.push_str(&format!("| {} ", c));
+            }
+
+            pos.push_str(&format!("{}| {}\n{}", rank, row + 1, DELIMITER));
+        }
+
+        pos.push_str("  a   b   c   d   e   f   g   h");
+        write!(f, "{pos}")
+    }
 }
 
 impl Board {

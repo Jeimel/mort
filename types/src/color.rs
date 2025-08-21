@@ -49,8 +49,8 @@ impl TryFrom<&str> for Color {
 impl From<bool> for Color {
     fn from(value: bool) -> Self {
         match value {
-            true => Color::White,
-            false => Color::Black,
+            true => Color::Black,
+            false => Color::White,
         }
     }
 }

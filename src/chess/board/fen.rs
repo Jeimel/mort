@@ -1,6 +1,6 @@
 use std::{error::Error, fmt::Display};
 
-use types::{Castling, Color, File, PieceType, Rank, Square, TypeParseError};
+use types::{Color, File, PieceType, Rank, Square, TypeParseError};
 
 use super::Board;
 
@@ -110,8 +110,18 @@ impl Board {
     }
 
     fn parse_castling(&mut self, fen: &str) -> Result<(), FenParseError> {
-        if fen != "-" {
-            self.castling = ok_or!(Castling::from_fen(fen).ok(), InvalidCastling);
+        if fen == "-" {
+            return Ok(());
+        }
+
+        for c in fen.chars() {
+            match c {
+                'K' => self.castling.set_kingside(Color::White, File::G),
+                'Q' => self.castling.set_queenside(Color::White, File::C),
+                'k' => self.castling.set_kingside(Color::Black, File::G),
+                'q' => self.castling.set_queenside(Color::Black, File::C),
+                _ => return Err(FenParseError::InvalidCastling),
+            };
         }
 
         Ok(())

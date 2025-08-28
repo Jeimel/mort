@@ -1,63 +1,14 @@
-use std::{error::Error, fmt::Display};
-
-use types::{Color, File, PieceType, Rank, Square, TypeParseError};
+use types::{Color, File, PieceType, Rank, Square};
 
 use super::Board;
 
 macro_rules! ok_or {
-    ($result:expr, $err:ident) => {
-        $result.ok_or_else(|| FenParseError::$err)?
+    ($result:expr, $expected:expr, $found:expr) => {
+        $result.ok_or_else(|| format!("expected {}, but found {}", $expected, $found))?
     };
 }
 
-#[derive(Debug)]
-pub enum FenParseError {
-    InvalidLength(usize),
-    InvalidSymbol(TypeParseError),
-    InvalidBoard,
-    InvalidColor,
-    InvalidCastling,
-    InvalidEnPassant,
-    InvalidHalfMove,
-    InvalidFullMove,
-}
-
-impl Display for FenParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FenParseError::InvalidLength(len) => {
-                write!(f, "Invalid FEN: expected 6 fields, but found {}", len)
-            }
-            FenParseError::InvalidSymbol(error) => write!(f, "Invalid symbol: {}", error),
-            FenParseError::InvalidBoard => {
-                write!(f, "Invalid board layout: ranks must sum to 8 squares each")
-            }
-            FenParseError::InvalidColor => {
-                write!(f, "Invalid active color: expected 'w' or 'b'")
-            }
-            FenParseError::InvalidCastling => {
-                write!(f, "Invalid castling rights: must be 'KQkq' subset or '-'")
-            }
-            FenParseError::InvalidEnPassant => {
-                write!(f, "Invalid en passant: must be '-' or valid notation")
-            }
-            FenParseError::InvalidHalfMove => {
-                write!(f, "Invalid halfmove clock: must be a positive integer")
-            }
-            FenParseError::InvalidFullMove => {
-                write!(f, "Invalid fullmove number: must be a positive integer")
-            }
-        }
-    }
-}
-
-impl From<TypeParseError> for FenParseError {
-    fn from(value: TypeParseError) -> Self {
-        Self::InvalidSymbol(value)
-    }
-}
-
-impl Error for FenParseError {}
+pub type FenParseError = String;
 
 impl Board {
     pub fn from_fen(&mut self, fen: &str) -> Result<(Color, u16, u8), FenParseError> {
@@ -65,16 +16,16 @@ impl Board {
 
         let fields: Vec<&str> = fen.split_ascii_whitespace().collect();
         if fields.len() != 6 {
-            return Err(FenParseError::InvalidLength(fields.len()));
+            return Err(format!("expected 6 fields, but found {}", fields.len()));
         }
 
         self.parse_board(fields[0])?;
         self.parse_castling(fields[2])?;
         self.parse_en_passant(fields[3])?;
 
-        let stm = ok_or!(Color::try_from(fields[1]).ok(), InvalidColor);
-        let ply = ok_or!(fields[5].parse().ok(), InvalidFullMove);
-        let rule50_ply = ok_or!(fields[4].parse().ok(), InvalidHalfMove);
+        let stm = ok_or!(Color::try_from(fields[1]).ok(), "'w' or 'b'", fields[1]);
+        let ply = ok_or!(fields[5].parse().ok(), "positive integer", fields[5]);
+        let rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
 
         Ok((stm, ply, rule50_ply))
     }
@@ -95,11 +46,11 @@ impl Board {
                 continue;
             }
 
-            let file = ok_or!(File::new(col), InvalidBoard);
-            let rank = ok_or!(Rank::new(row), InvalidBoard);
+            let file = ok_or!(File::new(col), "valid file index", col);
+            let rank = ok_or!(Rank::new(row), "valid rank index", row);
 
             let color = Color::from(c.is_ascii_lowercase());
-            let piece = PieceType::try_from(c)?;
+            let piece = PieceType::try_from(c).map_err(|err| format!("{:?}", err))?;
             let sq = Square::from(file, rank);
 
             self.set(sq, color, piece);
@@ -120,7 +71,7 @@ impl Board {
                 'Q' => self.castling.set_queenside(Color::White, File::C),
                 'k' => self.castling.set_kingside(Color::Black, File::G),
                 'q' => self.castling.set_queenside(Color::Black, File::C),
-                _ => return Err(FenParseError::InvalidCastling),
+                _ => return Err(format!("Expected 'KQkq' subset or '-', but found {}", c)),
             };
         }
 
@@ -134,8 +85,8 @@ impl Board {
 
         let mov = fen.as_bytes();
 
-        let file = ok_or!(File::new(mov[0] - b'a'), InvalidEnPassant);
-        let rank = ok_or!(Rank::new(mov[1] - b'1'), InvalidEnPassant);
+        let file = ok_or!(File::new(mov[0] - b'a'), "valid move", fen);
+        let rank = ok_or!(Rank::new(mov[1] - b'1'), "valid", fen);
 
         self.en_passant = Some(Square::from(file, rank));
 

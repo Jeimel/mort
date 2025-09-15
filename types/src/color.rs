@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Not};
 
 use crate::TypeParseError;
 
@@ -24,13 +24,26 @@ impl<T> Index<Color> for [T; 2] {
     type Output = T;
 
     fn index(&self, index: Color) -> &Self::Output {
+        // Safety: index is either 0 or 1
         unsafe { self.get_unchecked(index as usize) }
     }
 }
 
 impl<T> IndexMut<Color> for [T; 2] {
     fn index_mut(&mut self, index: Color) -> &mut Self::Output {
+        // Safety: index is either 0 or 1
         unsafe { self.get_unchecked_mut(index as usize) }
+    }
+}
+
+impl Not for Color {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
     }
 }
 

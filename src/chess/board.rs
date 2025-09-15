@@ -1,4 +1,5 @@
 mod fen;
+mod movegen;
 
 pub use fen::FenParseError;
 
@@ -74,6 +75,16 @@ impl Board {
         self.colors[color]
     }
 
+    pub fn piece(&self, sq: Square) -> PieceType {
+        for piece in PieceType::iter() {
+            if self.get(piece).is_set(sq) {
+                return piece;
+            }
+        }
+
+        unreachable!()
+    }
+
     pub fn get(&self, piece: PieceType) -> SquareSet {
         match piece {
             PieceType::Pawn => self.pawns(),
@@ -109,18 +120,18 @@ impl Board {
         self.kings[Color::White].set() | self.kings[Color::Black].set()
     }
 
-    fn set(&mut self, sq: Square, color: Color, piece: PieceType) {
-        self.colors[color].set(sq);
+    fn toggle(&mut self, sq: Square, color: Color, piece: PieceType) {
+        self.colors[color].toggle(sq);
 
         if matches!(piece, PieceType::Bishop | PieceType::Queen) {
-            self.bishops.set(sq);
+            self.bishops.toggle(sq);
         }
         if matches!(piece, PieceType::Rook | PieceType::Queen) {
-            self.rooks.set(sq);
+            self.rooks.toggle(sq);
         }
 
         match piece {
-            PieceType::Pawn => self.pawns.set(sq),
+            PieceType::Pawn => self.pawns.toggle(sq),
             PieceType::King => self.kings[color] = sq,
             _ => {}
         }

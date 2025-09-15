@@ -10,8 +10,8 @@ pub struct SquareSet(pub u64);
 impl SquareSet {
     pub const EMPTY: SquareSet = Self(0);
 
-    pub fn set(&mut self, sq: Square) {
-        self.0 = self.0 | sq.set().0;
+    pub fn toggle(&mut self, sq: Square) {
+        self.0 = self.0 ^ sq.set().0;
     }
 
     pub fn is_set(&self, sq: Square) -> bool {

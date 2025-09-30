@@ -39,10 +39,10 @@ pub fn pawn(stm: Color, sq: Square) -> SquareSet {
 /// Index precomputed attacks for knights.
 pub fn knight(sq: Square) -> SquareSet {
     const ATTACKS: [SquareSet; 64] = gen_lookup!(|set| {
-        let l1 = (set >> 1) & !File::A.set().0;
-        let l2 = (set >> 2) & !File::A.set().0 & !File::B.set().0;
-        let r1 = (set << 1) & !File::H.set().0;
-        let r2 = (set << 2) & !File::H.set().0 & !File::G.set().0;
+        let l1 = (set >> 1) & !File::H.set().0;
+        let l2 = (set >> 2) & !File::H.set().0 & !File::G.set().0;
+        let r1 = (set << 1) & !File::A.set().0;
+        let r2 = (set << 2) & !File::A.set().0 & !File::B.set().0;
 
         let h1 = l1 | r1;
         let h2 = l2 | r2;

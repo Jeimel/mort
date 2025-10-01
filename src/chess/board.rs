@@ -161,6 +161,7 @@ impl Board {
         attacked_by!(self.knights(), attacks::knight(sq));
         attacked_by!(self.bishops, attacks::bishop(sq, occ));
         attacked_by!(self.rooks, attacks::rook(sq, occ));
+        attacked_by!(self.kings[!stm].set(), attacks::king(sq));
 
         false
     }

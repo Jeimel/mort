@@ -157,7 +157,7 @@ impl Board {
         // We check if there exists an intersection between the given piece-type attacks from `sq`,
         // and their corresponding pieces on the board. We calculate the attacks based on `sq` to
         // avoid iterating over every piece, as we are only interested in pieces, which attack `sq`
-        attacked_by!(self.pawns(), attacks::pawn(!stm, sq));
+        attacked_by!(self.pawns(), attacks::pawn(stm, sq));
         attacked_by!(self.knights(), attacks::knight(sq));
         attacked_by!(self.bishops, attacks::bishop(sq, occ));
         attacked_by!(self.rooks, attacks::rook(sq, occ));

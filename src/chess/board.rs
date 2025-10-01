@@ -7,6 +7,9 @@ use std::fmt::Display;
 
 use types::{Castling, Color, PieceType, Square, SquareSet};
 
+use crate::chess::attacks;
+
+#[derive(Clone, Copy)]
 pub struct Board {
     colors: [SquareSet; 2],
     kings: [Square; 2],
@@ -96,6 +99,10 @@ impl Board {
         }
     }
 
+    pub fn in_check(&self, stm: Color) -> bool {
+        self.attacked(self.kings[stm], stm, self.all())
+    }
+
     fn pawns(&self) -> SquareSet {
         self.pawns
     }
@@ -135,5 +142,26 @@ impl Board {
             PieceType::King => self.kings[color] = sq,
             _ => {}
         }
+    }
+
+    fn attacked(&self, sq: Square, stm: Color, occ: SquareSet) -> bool {
+        macro_rules! attacked_by {
+            ($pieces:expr, $attacks:expr) => {
+                let pieces = $pieces & self.color(!stm);
+                if !($attacks & pieces).is_empty() {
+                    return true;
+                }
+            };
+        }
+
+        // We check if there exists an intersection between the given piece-type attacks from `sq`,
+        // and their corresponding pieces on the board. We calculate the attacks based on `sq` to
+        // avoid iterating over every piece, as we are only interested in pieces, which attack `sq`
+        attacked_by!(self.pawns(), attacks::pawn(!stm, sq));
+        attacked_by!(self.knights(), attacks::knight(sq));
+        attacked_by!(self.bishops, attacks::bishop(sq, occ));
+        attacked_by!(self.rooks, attacks::rook(sq, occ));
+
+        false
     }
 }

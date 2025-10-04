@@ -53,7 +53,7 @@ impl Board {
             let piece = PieceType::try_from(c).map_err(|err| format!("{:?}", err))?;
             let sq = Square::from(file, rank);
 
-            self.set(sq, color, piece);
+            self.toggle(sq, color, piece);
             col += 1;
         }
 
@@ -67,10 +67,10 @@ impl Board {
 
         for c in fen.chars() {
             match c {
-                'K' => self.castling.set_kingside(Color::White, File::G),
-                'Q' => self.castling.set_queenside(Color::White, File::C),
-                'k' => self.castling.set_kingside(Color::Black, File::G),
-                'q' => self.castling.set_queenside(Color::Black, File::C),
+                'K' => self.castling.set_kingside(Color::White),
+                'Q' => self.castling.set_queenside(Color::White),
+                'k' => self.castling.set_kingside(Color::Black),
+                'q' => self.castling.set_queenside(Color::Black),
                 _ => return Err(format!("Expected 'KQkq' subset or '-', but found {}", c)),
             };
         }

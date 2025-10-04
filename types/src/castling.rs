@@ -1,32 +1,68 @@
-use crate::{Color, File};
+use crate::{Color, Square};
 
 /// Compact representation of castling rights.
 ///
 /// **Layout**
-/// - Bits 0-11: target file positions (3 bits each, 0–7 for file `a`–`h`)
-///     - Bit 0-2: white kingside
-///     - Bit 3-5: black kinhside
-///     - Bit 6-8: white queenside
-///     - Bit 9-11: black queenside
+/// - Bits 0-3: indicator for each possible castling
 #[repr(transparent)]
-pub struct Castling(u16);
+#[derive(Clone, Copy)]
+pub struct Castling(u8);
 
 impl Castling {
     pub const EMPTY: Self = Self(0);
 
-    pub fn set_kingside(&mut self, color: Color, file: File) {
-        const SHIFT: [u8; 2] = [0, 3];
+    const KING_MASK: [u8; 2] = [0b0001, 0b0010];
+    const QUEEN_MASK: [u8; 2] = [0b0100, 0b1000];
 
-        self.set(SHIFT[color], file as u16);
+    const COLOR_MASK: [u8; 2] = [0b0101, 0b1010];
+
+    pub fn is_empty(&self, color: Color) -> bool {
+        self.0 & Self::COLOR_MASK[color] == 0
     }
 
-    pub fn set_queenside(&mut self, color: Color, file: File) {
-        const SHIFT: [u8; 2] = [6, 9];
-
-        self.set(SHIFT[color], file as u16);
+    pub fn remove(&mut self, start: Square, target: Square) {
+        self.0 &= Self::mask(start) & Self::mask(target);
     }
 
-    fn set(&mut self, shift: u8, data: u16) {
-        self.0 |= data << shift;
+    pub fn kingside(&self, color: Color) -> bool {
+        self.is_set(Self::KING_MASK[color])
+    }
+
+    pub fn queenside(&self, color: Color) -> bool {
+        self.is_set(Self::QUEEN_MASK[color])
+    }
+
+    pub fn set_kingside(&mut self, color: Color) {
+        self.set(Self::KING_MASK[color]);
+    }
+
+    pub fn set_queenside(&mut self, color: Color) {
+        self.set(Self::QUEEN_MASK[color]);
+    }
+
+    fn is_set(&self, mask: u8) -> bool {
+        self.0 & mask != 0
+    }
+
+    fn set(&mut self, mask: u8) {
+        self.0 |= mask;
+    }
+
+    fn mask(sq: Square) -> u8 {
+        match sq {
+            // The white queenside rook moved or got captured
+            Square::A1 => !Self::QUEEN_MASK[Color::White],
+            // The white king moved
+            Square::E1 => !Self::COLOR_MASK[Color::White],
+            // The white kingside rook moved or got captured
+            Square::H1 => !Self::KING_MASK[Color::White],
+            // The black queenside rook moved or got captured
+            Square::A8 => !Self::QUEEN_MASK[Color::Black],
+            // The black king moved
+            Square::E8 => !Self::COLOR_MASK[Color::Black],
+            // The black kingside rook moved or got captured
+            Square::H8 => !Self::KING_MASK[Color::Black],
+            _ => Self::COLOR_MASK[Color::White] | Self::COLOR_MASK[Color::Black],
+        }
     }
 }

@@ -92,6 +92,11 @@ impl Board {
             self.add_attacks(piece, stm, &mut moves);
         }
 
+        // We can't castle, if either our king is in check or we already did it
+        if !(self.in_check(stm) || self.castling.is_empty(stm)) {
+            self.add_castling(stm, &mut moves);
+        }
+
         moves
     }
 
@@ -190,6 +195,38 @@ impl Board {
             // The difference between our attacks and all blockers yields all quiet moves
             let quiets = attacks - occ;
             push_loop!(moves, quiets, start, MoveFlag::QUIET);
+        }
+    }
+
+    fn add_castling(&self, color: Color, moves: &mut MoveList) {
+        const KING_MASK: [SquareSet; 2] = [SquareSet(0b01100000), SquareSet(0b01100000 << 56)];
+        const QUEEN_MASK: [SquareSet; 2] = [SquareSet(0b00001110), SquareSet(0b00001110 << 56)];
+
+        const KING_ATTACK: [SquareSet; 2] = [SquareSet(0b01100000), SquareSet(0b01100000 << 56)];
+        const QUEEN_ATTACK: [SquareSet; 2] = [SquareSet(0b00001100), SquareSet(0b00001100 << 56)];
+
+        const KING_TARGET: [Square; 2] = [Square::G1, Square::G8];
+        const QUEEN_TARGET: [Square; 2] = [Square::C1, Square::C8];
+
+        let occ = self.all();
+        let king = self.kings[color];
+
+        if self.castling.kingside(color)
+            && (occ & KING_MASK[color]).is_empty()
+            && KING_ATTACK[color]
+                .iter()
+                .all(|sq| !self.attacked(sq, color, occ))
+        {
+            moves.push(Move::new(king, KING_TARGET[color], MoveFlag::KING_CASTLE));
+        }
+
+        if self.castling.queenside(color)
+            && (occ & QUEEN_MASK[color]).is_empty()
+            && QUEEN_ATTACK[color]
+                .iter()
+                .all(|sq| !self.attacked(sq, color, occ))
+        {
+            moves.push(Move::new(king, QUEEN_TARGET[color], MoveFlag::QUEEN_CASTLE));
         }
     }
 }

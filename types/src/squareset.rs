@@ -8,7 +8,7 @@ use crate::Square;
 pub struct SquareSet(pub u64);
 
 impl SquareSet {
-    pub const EMPTY: SquareSet = Self(0);
+    pub const EMPTY: Self = Self(0);
 
     pub fn toggle(&mut self, sq: Square) {
         self.0 = self.0 ^ sq.set().0;
@@ -28,6 +28,10 @@ impl SquareSet {
 
     pub fn wrapping_sub(self, rhs: Self) -> Self {
         Self(self.0.wrapping_sub(rhs.0))
+    }
+
+    pub fn rotate(self, n: u32) -> Self {
+        Self(self.0.rotate_left(n))
     }
 
     pub fn is_empty(self) -> bool {

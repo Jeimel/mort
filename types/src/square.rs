@@ -4,7 +4,7 @@ use crate::{File, Rank, SquareSet};
 
 #[rustfmt::skip]
 #[repr(u8)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -41,6 +41,24 @@ impl Square {
 
         match (file, rank) {
             (Some(file), Some(rank)) => Some(Self::from(file, rank)),
+            _ => None,
+        }
+    }
+
+    pub const fn try_delta_file(self, delta: i8) -> Option<Self> {
+        let file = self.file().try_delta(delta);
+
+        match file {
+            Some(file) => Some(Self::from(file, self.rank())),
+            _ => None,
+        }
+    }
+
+    pub const fn try_delta_rank(self, delta: i8) -> Option<Self> {
+        let rank = self.rank().try_delta(delta);
+
+        match rank {
+            Some(rank) => Some(Self::from(self.file(), rank)),
             _ => None,
         }
     }

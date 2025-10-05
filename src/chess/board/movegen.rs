@@ -14,7 +14,65 @@ macro_rules! push_loop {
 
 impl Board {
     pub(in crate::chess) fn make_move(&mut self, mov: Move, stm: Color) -> bool {
-        todo!()
+        const PAWN_SHIFT: [i8; 2] = [1, -1];
+
+        const CASTLING_QUEEN_START: [Square; 2] = [Square::A1, Square::A8];
+        const CASTLING_KING_START: [Square; 2] = [Square::H1, Square::H8];
+
+        const CASTLING_QUEEN_TARGET: [Square; 2] = [Square::D1, Square::D8];
+        const CASTLING_KING_TARGET: [Square; 2] = [Square::F1, Square::F8];
+
+        let start = mov.start();
+        let target = mov.target();
+        let flag = mov.flag();
+
+        let piece = self.piece(start);
+
+        self.en_passant = None;
+        self.castling.remove(start, target);
+
+        match flag {
+            // Store en passant target square for next turn
+            MoveFlag::DOUBLE_PAWN => self.en_passant = start.try_delta_rank(PAWN_SHIFT[stm]),
+            MoveFlag::QUEEN_CASTLE => {
+                self.toggle(CASTLING_QUEEN_START[stm], stm, PieceType::Rook);
+                self.toggle(CASTLING_QUEEN_TARGET[stm], stm, PieceType::Rook);
+            }
+            MoveFlag::KING_CASTLE => {
+                self.toggle(CASTLING_KING_START[stm], stm, PieceType::Rook);
+                self.toggle(CASTLING_KING_TARGET[stm], stm, PieceType::Rook);
+            }
+            // Remove their piece from the board
+            MoveFlag::CAPTURE => self.toggle(target, !stm, self.piece(target)),
+            // Remove their captured pawn
+            MoveFlag::EN_PASSANT => self.toggle(
+                target.try_delta_rank(PAWN_SHIFT[!stm]).unwrap(),
+                !stm,
+                PieceType::Pawn,
+            ),
+            _ => {}
+        };
+
+        // Remove our piece from the current square
+        self.toggle(start, stm, piece);
+
+        // Determine which piece must be placed on the target square
+        let piece = match mov.flag().promotion_piece() {
+            // We promote our piece
+            Some(piece) => piece,
+            // We just move our piece to the target square
+            None => piece,
+        };
+
+        // We captured their piece to promote ours
+        if self.all().is_set(target) {
+            self.toggle(target, !stm, self.piece(target));
+        }
+
+        // Add our new piece back on the board
+        self.toggle(target, stm, piece);
+
+        self.in_check(stm)
     }
 
     pub(in crate::chess) fn gen_moves(&self, stm: Color) -> MoveList {

@@ -10,7 +10,7 @@ mod square;
 mod squareset;
 
 pub use castling::Castling;
-pub use chessmove::Move;
+pub use chessmove::{Move, MoveFlag};
 pub use color::Color;
 pub use error::TypeParseError;
 pub use file::File;

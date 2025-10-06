@@ -14,12 +14,13 @@ macro_rules! push_loop {
 
 impl Board {
     pub(in crate::chess) fn make_move(&mut self, mov: Move, stm: Color) -> bool {
-        const PAWN_SHIFT: [i8; 2] = [1, -1];
+        const EN_PASSANT_ATTACK: [Rank; 2] = [Rank::Three, Rank::Six];
+        const EN_PASSANT_CAPTURE: [Rank; 2] = [Rank::Four, Rank::Five];
 
         const CASTLING_QUEEN_START: [Square; 2] = [Square::A1, Square::A8];
-        const CASTLING_KING_START: [Square; 2] = [Square::H1, Square::H8];
-
         const CASTLING_QUEEN_TARGET: [Square; 2] = [Square::D1, Square::D8];
+
+        const CASTLING_KING_START: [Square; 2] = [Square::H1, Square::H8];
         const CASTLING_KING_TARGET: [Square; 2] = [Square::F1, Square::F8];
 
         let start = mov.start();
@@ -33,11 +34,15 @@ impl Board {
 
         match flag {
             // Store en passant target square for next turn
-            MoveFlag::DOUBLE_PAWN => self.en_passant = start.try_delta_rank(PAWN_SHIFT[stm]),
+            MoveFlag::DOUBLE_PAWN => {
+                self.en_passant = Some(Square::from(start.file(), EN_PASSANT_ATTACK[stm]))
+            }
+            // Place rook on queenside castle target, which is either D1 or D8
             MoveFlag::QUEEN_CASTLE => {
                 self.toggle(CASTLING_QUEEN_START[stm], stm, PieceType::Rook);
                 self.toggle(CASTLING_QUEEN_TARGET[stm], stm, PieceType::Rook);
             }
+            // Place rook on kinsgide castle target, which is either F1 or F8
             MoveFlag::KING_CASTLE => {
                 self.toggle(CASTLING_KING_START[stm], stm, PieceType::Rook);
                 self.toggle(CASTLING_KING_TARGET[stm], stm, PieceType::Rook);
@@ -46,7 +51,7 @@ impl Board {
             MoveFlag::CAPTURE => self.toggle(target, !stm, self.piece(target)),
             // Remove their captured pawn
             MoveFlag::EN_PASSANT => self.toggle(
-                target.try_delta_rank(PAWN_SHIFT[!stm]).unwrap(),
+                Square::from(target.file(), EN_PASSANT_CAPTURE[!stm]),
                 !stm,
                 PieceType::Pawn,
             ),

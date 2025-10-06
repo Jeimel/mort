@@ -54,24 +54,6 @@ impl Square {
         }
     }
 
-    pub const fn try_delta_file(self, delta: i8) -> Option<Self> {
-        let file = self.file().try_delta(delta);
-
-        match file {
-            Some(file) => Some(Self::from(file, self.rank())),
-            _ => None,
-        }
-    }
-
-    pub const fn try_delta_rank(self, delta: i8) -> Option<Self> {
-        let rank = self.rank().try_delta(delta);
-
-        match rank {
-            Some(rank) => Some(Self::from(self.file(), rank)),
-            _ => None,
-        }
-    }
-
     pub const fn set(self) -> SquareSet {
         SquareSet(1u64 << (self as u8))
     }

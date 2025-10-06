@@ -1,4 +1,4 @@
-use crate::{Color, Square};
+use crate::{Color, Square, SquareSet};
 
 /// Compact representation of castling rights.
 ///
@@ -21,6 +21,11 @@ impl Castling {
     }
 
     pub fn remove(&mut self, start: Square, target: Square) {
+        // We can return early if both sides can't castle anymore
+        if (self.0 & (Self::COLOR_MASK[Color::White] | Self::COLOR_MASK[Color::Black])) == 0 {
+            return;
+        }
+
         self.0 &= Self::mask(start) & Self::mask(target);
     }
 
@@ -49,6 +54,13 @@ impl Castling {
     }
 
     fn mask(sq: Square) -> u8 {
+        const RELEVANT: SquareSet = SquareSet(10448351135499550865);
+
+        // We can skip the comparison if the square is not relevant for the update
+        if (sq.set() & RELEVANT).is_empty() {
+            return Self::COLOR_MASK[Color::White] | Self::COLOR_MASK[Color::Black];
+        }
+
         match sq {
             // The white queenside rook moved or got captured
             Square::A1 => !Self::QUEEN_MASK[Color::White],
@@ -62,7 +74,7 @@ impl Castling {
             Square::E8 => !Self::COLOR_MASK[Color::Black],
             // The black kingside rook moved or got captured
             Square::H8 => !Self::KING_MASK[Color::Black],
-            _ => Self::COLOR_MASK[Color::White] | Self::COLOR_MASK[Color::Black],
+            _ => unreachable!(),
         }
     }
 }

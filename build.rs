@@ -10,7 +10,7 @@ use types::{
 
 fn write_table(
     table: &mut [SquareSet],
-    slider: Slider,
+    slider: &Slider,
     index: impl Fn(Square, SquareSet) -> usize,
 ) {
     for sq in Square::iter() {
@@ -27,15 +27,15 @@ fn main() {
     println!("cargo:rerun-if-changed=types/src/slider/magic.rs");
 
     let mut table = [SquareSet::EMPTY; LOOKUP_TABLE_SIZE];
-    write_table(&mut table, ROOK, rook_magic_index);
-    write_table(&mut table, BISHOP, bishop_magic_index);
+    write_table(&mut table, &ROOK, rook_magic_index);
+    write_table(&mut table, &BISHOP, bishop_magic_index);
 
     let code = format!(
-        "const SLIDING_MOVES: &[SquareSet; {}] = &{:?};",
-        LOOKUP_TABLE_SIZE, table
+        "const SLIDING_MOVES: &[SquareSet; {LOOKUP_TABLE_SIZE}] = &{:?};",
+        table
     );
 
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("sliding_moves.rs");
-    fs::write(dest_path, code).unwrap()
+    fs::write(dest_path, code).unwrap();
 }

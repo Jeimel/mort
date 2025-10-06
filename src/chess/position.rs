@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use types::{Color, Move, MoveList};
+use types::{Color, Move, MoveFlag, MoveList, PieceType};
 
 use crate::uci::Error;
 
@@ -39,8 +39,15 @@ impl Position {
     pub fn make_move(&mut self, mov: Move) -> bool {
         let stm = self.stm;
 
-        self.stm = !self.stm;
+        self.stm = !stm;
         self.ply += 1;
+        self.rule50_ply = if self.board.piece(mov.start()) == PieceType::Pawn
+            || mov.flag() == MoveFlag::CAPTURE
+        {
+            0
+        } else {
+            self.rule50_ply + 1
+        };
 
         self.board.make_move(mov, stm)
     }
@@ -61,11 +68,10 @@ fn perft<const ROOT: bool>(board: &Board, stm: Color, depth: usize) -> usize {
 
     let mut nodes = 0;
 
-    let moves = board.gen_moves(stm);
-    for i in 0..moves.len() {
+    for mov in board.gen_moves(stm) {
         let mut new_board = *board;
 
-        if new_board.make_move(moves[i], stm) {
+        if new_board.make_move(mov, stm) {
             continue;
         }
 
@@ -73,7 +79,7 @@ fn perft<const ROOT: bool>(board: &Board, stm: Color, depth: usize) -> usize {
         nodes += child_nodes;
 
         if ROOT {
-            println!("{}: {}", moves[i], child_nodes);
+            println!("{}: {}", mov, child_nodes);
         }
     }
 

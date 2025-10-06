@@ -22,7 +22,7 @@ pub struct Board {
 
 impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        const DELIMITER: &'static str = concat!("+---+---+---+---+---+---+---+---+", '\n');
+        const DELIMITER: &str = concat!("+---+---+---+---+---+---+---+---+", '\n');
 
         let mut mailbox = [' '; 64];
         for piece in PieceType::iter() {

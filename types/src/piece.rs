@@ -1,7 +1,7 @@
 use crate::TypeParseError;
 
 #[repr(u8)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum PieceType {
     Pawn,
     Knight,

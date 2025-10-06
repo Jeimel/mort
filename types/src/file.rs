@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::SquareSet;
 
 #[repr(u8)]
@@ -11,6 +13,23 @@ pub enum File {
     F,
     G,
     H,
+}
+
+impl Display for File {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let file = match self {
+            File::A => 'a',
+            File::B => 'b',
+            File::C => 'c',
+            File::D => 'd',
+            File::E => 'e',
+            File::F => 'f',
+            File::G => 'g',
+            File::H => 'h',
+        };
+
+        write!(f, "{}", file)
+    }
 }
 
 impl File {

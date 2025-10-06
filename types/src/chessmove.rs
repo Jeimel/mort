@@ -45,7 +45,7 @@ impl Display for Move {
             .promotion_piece()
             .map_or(char::default(), char::from);
 
-        write!(f, "{:?}{:?}{}", self.start(), self.target(), flag)
+        write!(f, "{}{}{}", self.start(), self.target(), flag)
     }
 }
 

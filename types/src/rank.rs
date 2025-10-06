@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::SquareSet;
 
 #[repr(u8)]
@@ -11,6 +13,23 @@ pub enum Rank {
     Six,
     Seven,
     Eight,
+}
+
+impl Display for Rank {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rank = match self {
+            Rank::One => '1',
+            Rank::Two => '2',
+            Rank::Three => '3',
+            Rank::Four => '4',
+            Rank::Five => '5',
+            Rank::Six => '6',
+            Rank::Seven => '7',
+            Rank::Eight => '8',
+        };
+
+        write!(f, "{}", rank)
+    }
 }
 
 impl Rank {

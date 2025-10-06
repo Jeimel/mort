@@ -41,7 +41,8 @@ impl Position {
 
         self.stm = !stm;
         self.ply += 1;
-        self.rule50_ply = if self.board.piece(mov.start()) == PieceType::Pawn
+        // We reset the fifty move counter if either a pawn moved or a capture has been made
+        self.rule50_ply = if self.board.piece_at(mov.start()) == PieceType::Pawn
             || mov.flag() == MoveFlag::CAPTURE
         {
             0

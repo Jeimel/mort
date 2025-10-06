@@ -18,6 +18,7 @@ pub struct Board {
     pawns: SquareSet,
     castling: Castling,
     en_passant: Option<Square>,
+    mailbox: [Option<PieceType>; 64],
 }
 
 impl Display for Board {
@@ -64,6 +65,7 @@ impl Board {
         pawns: SquareSet::EMPTY,
         castling: Castling::EMPTY,
         en_passant: None,
+        mailbox: [None; 64],
     };
 
     pub fn clear(&mut self) {
@@ -78,11 +80,9 @@ impl Board {
         self.colors[color]
     }
 
-    pub fn piece(&self, sq: Square) -> PieceType {
-        for piece in PieceType::iter() {
-            if self.get(piece).is_set(sq) {
-                return piece;
-            }
+    pub fn piece_at(&self, sq: Square) -> PieceType {
+        if let Some(piece) = self.mailbox[sq] {
+            return piece;
         }
 
         unreachable!()
@@ -142,6 +142,11 @@ impl Board {
             PieceType::King => self.kings[color] = sq,
             _ => {}
         }
+
+        self.mailbox[sq] = match self.mailbox[sq] {
+            Some(_) => None,
+            None => Some(piece),
+        };
     }
 
     fn attacked(&self, sq: Square, stm: Color, occ: SquareSet) -> bool {

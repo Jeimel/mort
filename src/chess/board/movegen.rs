@@ -27,7 +27,7 @@ impl Board {
         let target = mov.target();
         let flag = mov.flag();
 
-        let piece = self.piece(start);
+        let piece = self.piece_at(start);
 
         self.en_passant = None;
         self.castling.remove(start, target);
@@ -48,7 +48,7 @@ impl Board {
                 self.toggle(CASTLING_KING_TARGET[stm], stm, PieceType::Rook);
             }
             // Remove their piece from the board
-            MoveFlag::CAPTURE => self.toggle(target, !stm, self.piece(target)),
+            MoveFlag::CAPTURE => self.toggle(target, !stm, self.piece_at(target)),
             // Remove their captured pawn
             MoveFlag::EN_PASSANT => self.toggle(
                 Square::from(target.file(), EN_PASSANT_CAPTURE[!stm]),
@@ -71,7 +71,7 @@ impl Board {
 
         // We captured their piece to promote ours
         if self.all().is_set(target) {
-            self.toggle(target, !stm, self.piece(target));
+            self.toggle(target, !stm, self.piece_at(target));
         }
 
         // Add our new piece back on the board

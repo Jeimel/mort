@@ -1,10 +1,12 @@
 use types::{Color, File, PieceType, Rank, Square};
 
+use crate::syntax_error;
+
 use super::Board;
 
 macro_rules! ok_or {
     ($result:expr, $expected:expr, $found:expr) => {
-        $result.ok_or_else(|| format!("expected {}, but found {}", $expected, $found))?
+        $result.ok_or_else(|| syntax_error!($expected, $found))?
     };
 }
 

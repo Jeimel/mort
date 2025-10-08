@@ -1,1 +1,5 @@
-fn main() {}
+use mort::uci;
+
+fn main() {
+    uci::run();
+}

@@ -40,10 +40,10 @@ pub struct Move(u16);
 
 impl Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let flag = self
-            .flag()
-            .promotion_piece()
-            .map_or(char::default(), char::from);
+        let flag = match self.flag().promotion_piece() {
+            Some(piece) => String::from(char::from(piece)),
+            None => String::new(),
+        };
 
         write!(f, "{}{}{}", self.start(), self.target(), flag)
     }

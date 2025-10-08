@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use types::{Color, Move, MoveFlag, MoveList, PieceType};
 
-use crate::uci::Error;
+use crate::error::Error;
 
 use super::board::Board;
 

@@ -1,4 +1,6 @@
 pub use chess::Position;
 
 mod chess;
-mod uci;
+mod error;
+mod search;
+pub mod uci;

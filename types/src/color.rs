@@ -3,7 +3,7 @@ use std::ops::{Index, IndexMut, Not};
 use crate::TypeParseError;
 
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Color {
     White,
     Black,

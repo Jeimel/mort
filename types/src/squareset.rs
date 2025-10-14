@@ -10,12 +10,16 @@ pub struct SquareSet(pub u64);
 impl SquareSet {
     pub const EMPTY: Self = Self(0);
 
-    pub fn toggle(&mut self, sq: Square) {
-        self.0 = self.0 ^ sq.set().0;
+    pub fn is_empty(self) -> bool {
+        self == Self::EMPTY
     }
 
     pub fn is_set(&self, sq: Square) -> bool {
         (self.0 & sq.set().0) != 0
+    }
+
+    pub fn toggle(&mut self, sq: Square) {
+        self.0 = self.0 ^ sq.set().0;
     }
 
     pub fn iter(self) -> SquareIter {
@@ -34,8 +38,8 @@ impl SquareSet {
         Self(self.0.rotate_left(n))
     }
 
-    pub fn is_empty(self) -> bool {
-        self == Self::EMPTY
+    pub fn popcnt(self) -> u32 {
+        self.0.count_ones()
     }
 
     pub fn index_lsb(self) -> u8 {

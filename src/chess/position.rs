@@ -6,6 +6,7 @@ use crate::error::Error;
 
 use super::board::Board;
 
+#[derive(Clone, Copy)]
 pub struct Position {
     /// Board fron the point of view of white
     board: Board,
@@ -34,6 +35,14 @@ impl Position {
             ply,
             rule50_ply,
         })
+    }
+
+    pub fn board(&self) -> Board {
+        self.board
+    }
+
+    pub fn stm(&self) -> Color {
+        self.stm
     }
 
     pub fn make_move(&mut self, mov: Move) -> bool {

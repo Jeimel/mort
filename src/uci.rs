@@ -1,28 +1,52 @@
 use std::{
     io, process,
+    slice::Iter,
     sync::atomic::{AtomicBool, Ordering},
     thread,
 };
 
-use crate::{Position, error::Error, search, syntax_error};
+use types::Color;
+
+use crate::{
+    Position,
+    error::Error,
+    search::{self, SearchLimit},
+    syntax_error,
+    thread::ThreadData,
+};
 
 const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 pub type UciError = String;
 
-fn handle_input<F: FnMut(&str, Vec<&str>)>(abort: &AtomicBool, mut f: F) {
-    loop {
-        let mut input = String::new();
+fn read() -> Option<String> {
+    let mut input = String::new();
 
-        let bytes_read = match io::stdin().read_line(&mut input) {
-            Ok(bytes_read) => bytes_read,
-            Err(_) => continue,
+    let bytes_read = match io::stdin().read_line(&mut input) {
+        Ok(bytes_read) => bytes_read,
+        Err(_) => return None,
+    };
+
+    // We received EOF
+    if bytes_read == 0 {
+        process::exit(0);
+    }
+
+    Some(input)
+}
+
+pub fn run() {
+    let mut pos = Position::from_fen(START_POS).unwrap();
+
+    let mut buffer = None;
+
+    loop {
+        let input = match buffer.clone().or_else(read) {
+            Some(input) => input,
+            None => continue,
         };
 
-        // We received EOF
-        if bytes_read == 0 {
-            process::exit(0);
-        }
+        buffer = None;
 
         let commands: Vec<_> = input.split_ascii_whitespace().collect();
         let command = match commands.first() {
@@ -30,26 +54,21 @@ fn handle_input<F: FnMut(&str, Vec<&str>)>(abort: &AtomicBool, mut f: F) {
             None => continue,
         };
 
-        f(command, commands);
-
-        if abort.load(Ordering::Relaxed) {
-            break;
-        }
+        match command {
+            "quit" => process::exit(0),
+            "uci" => identify(),
+            "position" => {
+                handle_position(&mut pos, commands).unwrap_or_else(|err| println!("{}", err))
+            }
+            "ucinewgame" => pos = Position::from_fen(START_POS).unwrap(),
+            "isready" => println!("readyok"),
+            "go" => {
+                handle_go(commands, &mut pos, &mut buffer).unwrap_or_else(|err| println!("{}", err))
+            }
+            "d" => println!("{}", pos),
+            _ => println!("Unknown command: {}", command),
+        };
     }
-}
-
-pub fn run() {
-    let mut pos = Position::from_fen(START_POS).unwrap();
-
-    handle_input(&AtomicBool::new(false), |command, commands| match command {
-        "quit" => process::exit(0),
-        "uci" => identify(),
-        "position" => handle_position(&mut pos, commands).unwrap_or_else(|err| println!("{}", err)),
-        "ucinewgame" => {}
-        "isready" => println!("readyok"),
-        "go" => handle_go(commands, &mut pos),
-        _ => println!("Unknown command: {}", command),
-    });
 }
 
 fn identify() {
@@ -72,6 +91,7 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
         Err(err) => return Err(err),
     };
 
+    // Technically, we don't check if the next token is really "moves"
     if commands.next().is_none() {
         return Ok(());
     }
@@ -90,21 +110,97 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
     Ok(())
 }
 
-fn handle_go(_: Vec<&str>, pos: &mut Position) {
+fn handle_go(
+    commands: Vec<&str>,
+    pos: &Position,
+    buffer: &mut Option<String>,
+) -> Result<(), Error> {
     let abort = AtomicBool::new(false);
+
+    let (limits, depth) = handle_limits(&mut commands.iter(), pos.stm())?;
+    let mut thread = ThreadData::new(&abort, limits);
 
     thread::scope(|s| {
         s.spawn(|| {
-            let (mov, _) = search::go(pos);
+            let _ = search::go(pos, &mut thread, depth);
 
-            println!("bestmove {}", mov);
+            println!("bestmove {}", thread.best.unwrap());
         });
 
-        handle_input(&abort, |command, _| match command {
+        *buffer = handle_search_input(&abort);
+    });
+
+    Ok(())
+}
+
+fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<(SearchLimit, u16), Error> {
+    let mut limits = SearchLimit::MAX;
+    let mut depth = 64;
+    let mut left = [u128::MAX, u128::MAX];
+    let mut increment = [0, 0];
+
+    while let Some(key) = commands.next() {
+        let mut skip = true;
+
+        match *key {
+            "infinite" => depth = u16::MAX,
+            "depth" | "nodes" | "wtime" | "btime" | "winc" | "binc" => skip = false,
+            _ => continue,
+        };
+
+        if skip {
+            continue;
+        }
+
+        let value = match commands.next() {
+            Some(value) => value,
+            None => return Err(Error::Uci(format!("Missing value for {}", key))),
+        };
+
+        let value: u64 = match value.parse() {
+            Ok(value) => value,
+            Err(_) => return Err(Error::Uci(format!("Invalid value for {}", key))),
+        };
+
+        match *key {
+            "depth" => depth = value as u16,
+            "nodes" => limits.nodes = value,
+            "wtime" => left[Color::White] = value as u128,
+            "btime" => left[Color::Black] = value as u128,
+            "winc" => increment[Color::White] = value as u128,
+            "binc" => increment[Color::Black] = value as u128,
+            _ => unreachable!(),
+        };
+    }
+
+    limits.time = left[stm] / 20 + increment[stm] / 2;
+
+    Ok((limits, depth))
+}
+
+fn handle_search_input(abort: &AtomicBool) -> Option<String> {
+    loop {
+        let input = match read() {
+            Some(input) => input,
+            None => continue,
+        };
+
+        let command = match input.split_ascii_whitespace().next() {
+            Some(command) => command,
+            None => continue,
+        };
+
+        match command {
             "quit" => process::exit(0),
             "isready" => println!("readyok"),
             "stop" => abort.store(true, Ordering::Relaxed),
-            _ => println!("Unknown command: {}", command),
-        });
-    });
+            _ => return Some(input),
+        }
+
+        if abort.load(Ordering::Relaxed) {
+            break;
+        }
+    }
+
+    None
 }

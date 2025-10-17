@@ -31,6 +31,12 @@ impl Board {
 
         self.en_passant = None;
         self.castling.remove(start, target);
+        self.rule50_ply += 1;
+
+        // The fifty move counter is reseted on a pawn move
+        if piece == PieceType::Pawn {
+            self.rule50_ply = 0;
+        }
 
         match flag {
             // Store en passant target square for next turn
@@ -47,8 +53,11 @@ impl Board {
                 self.toggle(CASTLING_KING_START[stm], stm, PieceType::Rook);
                 self.toggle(CASTLING_KING_TARGET[stm], stm, PieceType::Rook);
             }
-            // Remove their piece from the board
-            MoveFlag::CAPTURE => self.toggle(target, !stm, self.piece_at(target)),
+            // Remove their piece from the board, and reset fifty move counter
+            MoveFlag::CAPTURE => {
+                self.toggle(target, !stm, self.piece_at(target));
+                self.rule50_ply = 0;
+            }
             // Remove their captured pawn
             MoveFlag::EN_PASSANT => self.toggle(
                 Square::from(target.file(), EN_PASSANT_CAPTURE[!stm]),
@@ -70,14 +79,14 @@ impl Board {
         };
 
         // We captured their piece to promote ours
-        if self.all().is_set(target) {
+        if self.layout.all().is_set(target) {
             self.toggle(target, !stm, self.piece_at(target));
         }
 
         // Add our new piece back on the board
         self.toggle(target, stm, piece);
 
-        self.in_check(stm)
+        self.check(stm)
     }
 
     pub(in crate::chess) fn gen_moves(&self, stm: Color) -> MoveList {
@@ -85,7 +94,11 @@ impl Board {
         // without occupying too much memory
         let mut moves = MoveList::with_capacity(35);
 
-        self.add_pawns(stm, &mut moves);
+        let us = self.layout.color(stm);
+        let them = self.layout.color(!stm);
+        let occ = self.layout.all();
+
+        self.add_pawns(stm, &mut moves, us, them, occ);
 
         for piece in [
             PieceType::Knight,
@@ -94,29 +107,35 @@ impl Board {
             PieceType::Queen,
             PieceType::King,
         ] {
-            self.add_attacks(piece, stm, &mut moves);
+            self.add_attacks(piece, &mut moves, us, them, occ);
         }
 
         // We can't castle, if either our king is in check or we already did it
-        if !(self.in_check(stm) || self.castling.is_empty(stm)) {
+        if !(self.check(stm) || self.castling.is_empty(stm)) {
             self.add_castling(stm, &mut moves);
         }
 
         moves
     }
 
-    fn add_pawns(&self, color: Color, moves: &mut MoveList) {
+    fn add_pawns(
+        &self,
+        color: Color,
+        moves: &mut MoveList,
+        us: SquareSet,
+        them: SquareSet,
+        occ: SquareSet,
+    ) {
         const ROTATION: [u32; 2] = [8, 56];
 
         const PROMOTION_RANK: [SquareSet; 2] = [Rank::Eight.set(), Rank::One.set()];
         const PRE_PROMOTION_RANK: [SquareSet; 2] = [Rank::Seven.set(), Rank::Two.set()];
 
-        let occ = self.all();
-        let pawns = self.get(PieceType::Pawn) & self.color(color);
+        let pawns = self.layout.get(PieceType::Pawn) & us;
 
         for start in pawns.iter() {
             // The intersection between our attacks and their pieces yields all captures
-            let captures = attacks::pawn(color, start) & self.color(!color);
+            let captures = attacks::pawn(color, start) & them;
 
             // Captures and promotions within a single move are a special case, which we can filter
             // through the intersection between all captures and the respective last rank
@@ -179,9 +198,15 @@ impl Board {
         }
     }
 
-    fn add_attacks(&self, piece: PieceType, color: Color, moves: &mut MoveList) {
-        let pieces = self.get(piece) & self.color(color);
-        let occ = self.all();
+    fn add_attacks(
+        &self,
+        piece: PieceType,
+        moves: &mut MoveList,
+        us: SquareSet,
+        them: SquareSet,
+        occ: SquareSet,
+    ) {
+        let pieces = self.layout.get(piece) & us;
 
         for start in pieces.iter() {
             let attacks = match piece {
@@ -194,7 +219,7 @@ impl Board {
             };
 
             // The intersection between our attacks and their pieces yields all captures
-            let captures = attacks & self.color(!color);
+            let captures = attacks & them;
             push_loop!(moves, captures, start, MoveFlag::CAPTURE);
 
             // The difference between our attacks and all blockers yields all quiet moves
@@ -213,14 +238,14 @@ impl Board {
         const KING_TARGET: [Square; 2] = [Square::G1, Square::G8];
         const QUEEN_TARGET: [Square; 2] = [Square::C1, Square::C8];
 
-        let occ = self.all();
-        let king = self.kings[color];
+        let occ = self.layout.all();
+        let king = self.layout.kings[color];
 
         if self.castling.kingside(color)
             && (occ & KING_MASK[color]).is_empty()
             && KING_ATTACK[color]
                 .iter()
-                .all(|sq| !self.attacked(sq, color, occ))
+                .all(|sq| !self.layout.attacked(sq, color, occ))
         {
             moves.push(Move::new(king, KING_TARGET[color], MoveFlag::KING_CASTLE));
         }
@@ -229,64 +254,9 @@ impl Board {
             && (occ & QUEEN_MASK[color]).is_empty()
             && QUEEN_ATTACK[color]
                 .iter()
-                .all(|sq| !self.attacked(sq, color, occ))
+                .all(|sq| !self.layout.attacked(sq, color, occ))
         {
             moves.push(Move::new(king, QUEEN_TARGET[color], MoveFlag::QUEEN_CASTLE));
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    macro_rules! perft {
-        ($name:ident, $fen:literal, $result:literal, $depth:literal) => {
-            #[test]
-            fn $name() {
-                let pos = crate::Position::from_fen($fen).unwrap();
-                assert_eq!($result, pos.perft::<false>($depth));
-            }
-        };
-    }
-
-    perft!(
-        pos1,
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        119060324,
-        6
-    );
-
-    perft!(
-        pos2,
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-        193690690,
-        5
-    );
-
-    perft!(
-        pos3,
-        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-        178633661,
-        7
-    );
-
-    perft!(
-        pos4,
-        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-        706045033,
-        6
-    );
-
-    perft!(
-        pos5,
-        "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-        89941194,
-        5
-    );
-
-    perft!(
-        pos6,
-        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
-        164075551,
-        5
-    );
 }

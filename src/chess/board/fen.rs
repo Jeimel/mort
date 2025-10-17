@@ -13,7 +13,7 @@ macro_rules! ok_or {
 pub type FenParseError = String;
 
 impl Board {
-    pub fn from_fen(&mut self, fen: &str) -> Result<(Color, u16, u8), FenParseError> {
+    pub fn from_fen(&mut self, fen: &str) -> Result<(Color, u16), FenParseError> {
         self.clear();
 
         let fields: Vec<&str> = fen.split_ascii_whitespace().collect();
@@ -25,11 +25,12 @@ impl Board {
         self.parse_castling(fields[2])?;
         self.parse_en_passant(fields[3])?;
 
+        self.rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
+
         let stm = ok_or!(Color::try_from(fields[1]).ok(), "'w' or 'b'", fields[1]);
         let ply = ok_or!(fields[5].parse().ok(), "positive integer", fields[5]);
-        let rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
 
-        Ok((stm, ply, rule50_ply))
+        Ok((stm, ply))
     }
 
     fn parse_board(&mut self, fen: &str) -> Result<(), FenParseError> {

@@ -10,6 +10,7 @@ use types::Color;
 use crate::{
     Position,
     error::Error,
+    evaluation::evaluate,
     search::{self, SearchLimit},
     syntax_error,
     thread::ThreadData,
@@ -66,6 +67,7 @@ pub fn run() {
                 handle_go(commands, &mut pos, &mut buffer).unwrap_or_else(|err| println!("{}", err))
             }
             "d" => println!("{}", pos),
+            "eval" => println!("score cp {}", evaluate(&pos)),
             _ => println!("Unknown command: {}", command),
         };
     }
@@ -78,12 +80,24 @@ fn identify() {
 }
 
 fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error> {
-    let mut commands = commands.iter().skip(1);
+    let mut commands = commands.iter().peekable().skip(1);
 
-    let fen = match *commands.next().unwrap() {
-        "fen" => commands.next().unwrap(),
-        "startpos" => START_POS,
-        command => return Err(Error::Uci(syntax_error!("[ fen | startpos ]", command))),
+    let mut fen = match *commands.next().unwrap() {
+        "fen" | "startpos" => String::new(),
+        command => return Err(Error::Uci(syntax_error!("[fen|startpos]", command))),
+    };
+
+    // We iterate until we are either empty, or we found the "moves" token, which we will consume
+    while let Some(command) = commands.next()
+        && *command != "moves"
+    {
+        fen.push_str(&format!("{} ", command));
+    }
+
+    let fen = if fen.is_empty() {
+        START_POS
+    } else {
+        fen.as_str()
     };
 
     *pos = match Position::from_fen(fen) {
@@ -91,11 +105,7 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
         Err(err) => return Err(err),
     };
 
-    // Technically, we don't check if the next token is really "moves"
-    if commands.next().is_none() {
-        return Ok(());
-    }
-
+    // We already skipped the "moves" token earlier, so we can directly play the moves if any
     while let Some(str) = commands.next() {
         match pos
             .gen_moves()
@@ -118,13 +128,13 @@ fn handle_go(
     let abort = AtomicBool::new(false);
 
     let (limits, depth) = handle_limits(&mut commands.iter(), pos.stm())?;
-    let mut thread = ThreadData::new(&abort, limits);
+    let mut main = ThreadData::new(&abort, pos.clone(), true, limits);
 
     thread::scope(|s| {
         s.spawn(|| {
-            let _ = search::go(pos, &mut thread, depth);
+            search::go(&mut main, depth);
 
-            println!("bestmove {}", thread.best.unwrap());
+            println!("bestmove {}", main.best.unwrap());
         });
 
         *buffer = handle_search_input(&abort);

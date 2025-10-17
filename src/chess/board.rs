@@ -30,9 +30,13 @@ impl Display for Board {
             let mut rank = String::new();
 
             for c in &self.mailbox[start..(start + 8)] {
-                if let Some(piece) = c {
-                    rank.push_str(&format!("| {} ", char::from(*piece)));
-                }
+                let c = if let Some(piece) = c {
+                    char::from(*piece)
+                } else {
+                    ' '
+                };
+
+                rank.push_str(&format!("| {} ", c));
             }
 
             pos.push_str(&format!("{}| {}\n{}", rank, row + 1, DELIMITER));

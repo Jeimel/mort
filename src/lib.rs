@@ -1,6 +1,11 @@
-pub use chess::Position;
-
 mod chess;
 mod error;
+mod evaluation;
+mod perft;
 mod search;
-pub mod uci;
+mod thread;
+mod uci;
+
+pub use chess::Position;
+pub use perft::perft;
+pub use uci::run;

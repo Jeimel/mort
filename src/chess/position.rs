@@ -8,7 +8,7 @@ use super::board::Board;
 
 #[derive(Clone)]
 pub struct Position {
-    /// Board fro, the point of view of white
+    /// Board from the point of view of white
     pub(crate) board: Board,
     /// Current side to move
     stm: Color,
@@ -71,14 +71,14 @@ impl Position {
     }
 
     pub fn draw(&self) -> bool {
-        self.board.rule50_ply >= 100 || self.repetition() || self.sufficient_material()
+        self.board.rule50_ply >= 100 || self.insufficient_material()
     }
 
-    fn repetition(&self) -> bool {
-        todo!()
+    pub fn upcoming_repetition(&self) -> bool {
+        false
     }
 
-    fn sufficient_material(&self) -> bool {
+    fn insufficient_material(&self) -> bool {
         const LIGHT_SQUARES: SquareSet = SquareSet(0x55AA55AA55AA55AA);
         const DARK_SQUARES: SquareSet = SquareSet(0xAA55AA55AA55AA55);
 

@@ -2,12 +2,12 @@ mod fen;
 mod layout;
 mod movegen;
 
-pub use fen::FenParseError;
-use layout::PieceLayout;
-
 use std::fmt::Display;
 
+use layout::PieceLayout;
 use types::{Castling, Color, PieceType, Square};
+
+pub use fen::FenParseError;
 
 #[derive(Clone)]
 pub struct Board {

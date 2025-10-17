@@ -4,7 +4,7 @@ use crate::Square;
 
 /// A `SquareSet` represents a board as array of 64 bits.
 #[repr(transparent)]
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct SquareSet(pub u64);
 
 impl SquareSet {

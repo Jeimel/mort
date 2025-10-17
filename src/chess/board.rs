@@ -56,7 +56,7 @@ impl Board {
         rule50_ply: 0,
     };
 
-    pub fn clear(&mut self) {
+    pub(in crate::chess) fn clear(&mut self) {
         *self = Self::EMPTY;
     }
 
@@ -68,7 +68,7 @@ impl Board {
         unreachable!()
     }
 
-    pub fn check(&self, stm: Color) -> bool {
+    pub(in crate::chess) fn check(&self, stm: Color) -> bool {
         self.layout
             .attacked(self.layout.kings[stm], stm, self.layout.all())
     }

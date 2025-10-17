@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{PieceType, Square};
 
-#[derive(Default, Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct MoveFlag(u8);
 
 impl MoveFlag {

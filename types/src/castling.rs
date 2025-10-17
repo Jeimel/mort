@@ -5,7 +5,7 @@ use crate::{Color, Square, SquareSet};
 /// **Layout**
 /// - Bits 0-3: indicator for each possible castling
 #[repr(transparent)]
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Castling(u8);
 
 impl Castling {

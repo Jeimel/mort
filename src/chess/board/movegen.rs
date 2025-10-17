@@ -33,7 +33,7 @@ impl Board {
         self.castling.remove(start, target);
         self.rule50_ply += 1;
 
-        // The fifty move counter is reseted on a pawn move
+        // The fifty move counter is resetted on a pawn move
         if piece == PieceType::Pawn {
             self.rule50_ply = 0;
         }
@@ -53,7 +53,7 @@ impl Board {
                 self.toggle(CASTLING_KING_START[stm], stm, PieceType::Rook);
                 self.toggle(CASTLING_KING_TARGET[stm], stm, PieceType::Rook);
             }
-            // Remove their piece from the board, and reset fifty move counter
+            // Remove their piece from the board, and reset the fifty move counter
             MoveFlag::CAPTURE => {
                 self.toggle(target, !stm, self.piece_at(target));
                 self.rule50_ply = 0;

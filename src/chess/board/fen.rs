@@ -13,7 +13,7 @@ macro_rules! ok_or {
 pub type FenParseError = String;
 
 impl Board {
-    pub fn from_fen(&mut self, fen: &str) -> Result<(Color, u16), FenParseError> {
+    pub(in crate::chess) fn from_fen(&mut self, fen: &str) -> Result<(Color, u16), FenParseError> {
         self.clear();
 
         let fields: Vec<&str> = fen.split_ascii_whitespace().collect();

@@ -12,10 +12,10 @@ pub use fen::FenParseError;
 #[derive(Clone)]
 pub struct Board {
     pub layout: PieceLayout,
-    pub castling: Castling,
-    pub en_passant: Option<Square>,
-    pub mailbox: [Option<PieceType>; 64],
-    pub rule50_ply: u8,
+    castling: Castling,
+    en_passant: Option<Square>,
+    mailbox: [Option<PieceType>; 64],
+    rule50_ply: u8,
 }
 
 impl Display for Board {
@@ -27,19 +27,11 @@ impl Display for Board {
         for row in (0..8).rev() {
             let start = row * 8;
 
-            let mut rank = String::new();
-
             for c in &self.mailbox[start..(start + 8)] {
-                let c = if let Some(piece) = c {
-                    char::from(*piece)
-                } else {
-                    ' '
-                };
-
-                rank.push_str(&format!("| {} ", c));
+                pos.push_str(&format!("| {} ", c.map(|c| char::from(c)).unwrap_or(' ')));
             }
 
-            pos.push_str(&format!("{}| {}\n{}", rank, row + 1, DELIMITER));
+            pos.push_str(&format!("| {}\n{}", row + 1, DELIMITER));
         }
 
         pos.push_str("  a   b   c   d   e   f   g   h");
@@ -56,8 +48,17 @@ impl Board {
         rule50_ply: 0,
     };
 
-    pub(in crate::chess) fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         *self = Self::EMPTY;
+    }
+
+    pub(crate) fn check(&self, stm: Color) -> bool {
+        self.layout
+            .attacked(self.layout.kings[stm], stm, self.layout.all())
+    }
+
+    pub(crate) fn rule50_ply(&self) -> u8 {
+        self.rule50_ply
     }
 
     pub fn piece_at(&self, sq: Square) -> PieceType {
@@ -66,11 +67,6 @@ impl Board {
         }
 
         unreachable!()
-    }
-
-    pub(in crate::chess) fn check(&self, stm: Color) -> bool {
-        self.layout
-            .attacked(self.layout.kings[stm], stm, self.layout.all())
     }
 
     fn toggle(&mut self, sq: Square, color: Color, piece: PieceType) {

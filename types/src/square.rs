@@ -40,8 +40,8 @@ impl Square {
         unsafe { std::mem::transmute(rank as u8 * 8 + file as u8) }
     }
 
-    pub fn iter() -> impl Iterator<Item = Square> {
-        (0..64).map(|index| Square::new(index).unwrap())
+    pub fn iter() -> impl Iterator<Item = Self> {
+        (0..64).map(|index| Self::new(index).unwrap())
     }
 
     pub const fn try_delta(self, delta_file: i8, delta_rank: i8) -> Option<Self> {
@@ -64,6 +64,10 @@ impl Square {
 
     pub const fn rank(self) -> Rank {
         Rank::new(self as u8 >> 3).unwrap()
+    }
+
+    pub const fn flip(self) -> Self {
+        Self::new(self as u8 ^ 0b111000).unwrap()
     }
 }
 

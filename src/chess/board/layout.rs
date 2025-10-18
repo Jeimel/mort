@@ -39,7 +39,7 @@ impl PieceLayout {
         }
     }
 
-    pub fn attacked(&self, sq: Square, stm: Color, occ: SquareSet) -> bool {
+    pub(crate) fn attacked(&self, sq: Square, stm: Color, occ: SquareSet) -> bool {
         macro_rules! attacked_by {
             ($pieces:expr, $attacks:expr) => {
                 let pieces = $pieces & self.color(!stm);
@@ -61,7 +61,7 @@ impl PieceLayout {
         false
     }
 
-    pub fn toggle(&mut self, sq: Square, color: Color, piece: PieceType) {
+    pub(crate) fn toggle(&mut self, sq: Square, color: Color, piece: PieceType) {
         self.colors[color].toggle(sq);
 
         if matches!(piece, PieceType::Bishop | PieceType::Queen) {

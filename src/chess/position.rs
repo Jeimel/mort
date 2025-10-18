@@ -71,7 +71,7 @@ impl Position {
     }
 
     pub fn draw(&self) -> bool {
-        self.board.rule50_ply >= 100 || self.insufficient_material()
+        self.board.rule50_ply() >= 100 || self.insufficient_material()
     }
 
     pub fn upcoming_repetition(&self) -> bool {

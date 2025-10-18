@@ -144,43 +144,45 @@ fn handle_go(
 }
 
 fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<(SearchLimit, u16), Error> {
+    macro_rules! parse {
+        (match ($commands:expr, $key:ident) { $($value:literal => $var:expr),* $(,)? }) => {
+            match *$key {
+                $($value => $var = parse!($key, $commands),)*
+                _ => {},
+            }
+        };
+
+        ($key:expr, $commands:expr) => {{
+            let value = match $commands.next() {
+                Some(value) => value,
+                None => return Err(Error::Uci(format!("Missing value for {}", $key))),
+            };
+
+            match value.parse() {
+                Ok(value) => value,
+                Err(_) => return Err(Error::Uci(format!("Invalid value for {}", $key))),
+            }
+        }};
+    }
+
     let mut limits = SearchLimit::MAX;
     let mut depth = 64;
     let mut left = [u128::MAX, u128::MAX];
     let mut increment = [0, 0];
 
     while let Some(key) = commands.next() {
-        let mut skip = true;
-
-        match *key {
-            "infinite" => depth = u16::MAX,
-            "depth" | "nodes" | "wtime" | "btime" | "winc" | "binc" => skip = false,
-            _ => continue,
-        };
-
-        if skip {
+        if *key == "infinite" {
             continue;
         }
 
-        let value = match commands.next() {
-            Some(value) => value,
-            None => return Err(Error::Uci(format!("Missing value for {}", key))),
-        };
-
-        let value: u64 = match value.parse() {
-            Ok(value) => value,
-            Err(_) => return Err(Error::Uci(format!("Invalid value for {}", key))),
-        };
-
-        match *key {
-            "depth" => depth = value as u16,
-            "nodes" => limits.nodes = value,
-            "wtime" => left[Color::White] = value as u128,
-            "btime" => left[Color::Black] = value as u128,
-            "winc" => increment[Color::White] = value as u128,
-            "binc" => increment[Color::Black] = value as u128,
-            _ => unreachable!(),
-        };
+        parse!(match (commands, key) {
+            "depth" => depth,
+            "nodes" => limits.nodes,
+            "wtime" => left[Color::White],
+            "btime" => left[Color::Black],
+            "winc" => increment[Color::White],
+            "binc" => increment[Color::Black],
+        });
     }
 
     limits.time = left[stm] / 20 + increment[stm] / 2;

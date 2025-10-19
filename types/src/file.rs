@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    ops::{Index, IndexMut},
+};
 
 use crate::SquareSet;
 
@@ -52,5 +55,19 @@ impl File {
 
     pub const fn set(self) -> SquareSet {
         SquareSet(0x101010101010101u64 << (self as u8))
+    }
+}
+
+impl<T> Index<File> for [T; 8] {
+    type Output = T;
+
+    fn index(&self, index: File) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> IndexMut<File> for [T; 8] {
+    fn index_mut(&mut self, index: File) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }

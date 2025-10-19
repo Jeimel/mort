@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use crate::{Color, Square, SquareSet};
 
 /// Compact representation of castling rights.
@@ -5,7 +7,7 @@ use crate::{Color, Square, SquareSet};
 /// **Layout**
 /// - Bits 0-3: indicator for each possible castling
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Castling(u8);
 
 impl Castling {
@@ -76,5 +78,19 @@ impl Castling {
             Square::H8 => !Self::KING_MASK[Color::Black],
             _ => unreachable!(),
         }
+    }
+}
+
+impl<T> Index<Castling> for [T; 16] {
+    type Output = T;
+
+    fn index(&self, index: Castling) -> &Self::Output {
+        unsafe { self.get_unchecked(index.0 as usize) }
+    }
+}
+
+impl<T> IndexMut<Castling> for [T; 16] {
+    fn index_mut(&mut self, index: Castling) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index.0 as usize) }
     }
 }

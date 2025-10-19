@@ -1,92 +1,109 @@
+mod fen;
+mod hashing;
+mod layout;
+mod movegen;
+
+pub use fen::FenParseError;
+
 use std::fmt::Display;
 
-use types::{Color, Move, MoveList, PieceType, SquareSet};
+use hashing::{Key, zobrist};
+use layout::PieceLayout;
+use types::{Castling, Color, PieceType, Square, SquareSet};
 
 use crate::error::Error;
 
-use super::board::Board;
-
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Position {
-    /// Board from the point of view of white
-    pub(crate) board: Board,
-    /// Current side to move
+    pub layout: PieceLayout,
+    castling: Castling,
+    en_passant: Option<Square>,
+    mailbox: [Option<PieceType>; 64],
     stm: Color,
-    /// Number of half-moves since the beginning
     ply: u16,
-    /// Previous board states
-    history: Vec<Board>,
+    rule50_ply: u8,
+    zobrist: Key,
 }
 
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.board)
+        const DELIMITER: &str = concat!("+---+---+---+---+---+---+---+---+", '\n');
+
+        let mut pos = String::from(DELIMITER);
+
+        for row in (0..8).rev() {
+            let start = row * 8;
+
+            for c in &self.mailbox[start..(start + 8)] {
+                pos.push_str(&format!("| {} ", c.map(|c| char::from(c)).unwrap_or(' ')));
+            }
+
+            pos.push_str(&format!("| {}\n{}", row + 1, DELIMITER));
+        }
+
+        pos.push_str("  a   b   c   d   e   f   g   h");
+
+        write!(f, "{}\n\nKey: {:x}", pos, self.zobrist)
     }
 }
 
 impl Position {
     pub fn from_fen(fen: &str) -> Result<Self, Error> {
-        let mut board = Board::EMPTY;
-        let (stm, ply) = board.from_fen(fen)?;
-
-        Ok(Position {
-            board,
-            stm,
-            ply,
-            history: Vec::new(),
-        })
+        Ok(Position::parse_fen(fen)?)
     }
 
     pub fn stm(&self) -> Color {
         self.stm
     }
 
-    pub fn make_move(&mut self, mov: Move) -> bool {
-        self.history.push(self.board.clone());
-
-        if self.board.make_move(mov, self.stm) {
-            self.board = self.history.pop().unwrap();
-
-            return false;
+    pub fn piece_at(&self, sq: Square) -> PieceType {
+        if let Some(piece) = self.mailbox[sq] {
+            return piece;
         }
 
-        self.stm = !self.stm;
-        self.ply += 1;
-
-        true
-    }
-
-    pub fn unmake_move(&mut self) {
-        self.stm = !self.stm;
-        self.ply -= 1;
-        self.board = self.history.pop().unwrap();
-    }
-
-    pub fn gen_moves(&self) -> MoveList {
-        self.board.gen_moves(self.stm)
+        unreachable!()
     }
 
     pub fn check(&self) -> bool {
-        self.board.check(self.stm)
+        self.layout.king_attacked(self.stm)
+    }
+
+    pub fn zobrist(&self) -> Key {
+        let mut zobrist = self.zobrist;
+
+        if let Some(en_passant) = self.en_passant {
+            zobrist ^= zobrist::EN_PASSANT[en_passant.file()];
+        }
+
+        zobrist ^ zobrist::CASTLING[self.castling]
     }
 
     pub fn draw(&self) -> bool {
-        self.board.rule50_ply() >= 100 || self.insufficient_material()
+        self.rule50_ply >= 100 || self.insufficient_material()
     }
 
     pub fn upcoming_repetition(&self) -> bool {
         false
     }
 
+    fn toggle(&mut self, sq: Square, color: Color, piece: PieceType) {
+        self.layout.toggle(sq, color, piece);
+
+        self.zobrist ^= zobrist::PIECE[color][piece][sq];
+
+        self.mailbox[sq] = match self.mailbox[sq] {
+            Some(_) => None,
+            None => Some(piece),
+        };
+    }
+
     fn insufficient_material(&self) -> bool {
         const LIGHT_SQUARES: SquareSet = SquareSet(0x55AA55AA55AA55AA);
         const DARK_SQUARES: SquareSet = SquareSet(0xAA55AA55AA55AA55);
 
-        let layout = &self.board.layout;
-
-        let sufficient_material = layout.get(PieceType::Pawn)
-            | layout.get(PieceType::Rook)
-            | layout.get(PieceType::Queen);
+        let sufficient_material = self.layout.get(PieceType::Pawn)
+            | self.layout.get(PieceType::Rook)
+            | self.layout.get(PieceType::Queen);
 
         // We can still checkmate with any combination of pawns, rooks, and queens
         if !sufficient_material.is_empty() {
@@ -94,16 +111,16 @@ impl Position {
         }
 
         // We can't checkmate anymore with only one bishops or knight left on the board
-        if (layout.color(Color::White) | layout.color(Color::Black)).popcnt() <= 3 {
+        if (self.layout.color(Color::White) | self.layout.color(Color::Black)).popcnt() <= 3 {
             return true;
         }
 
         // We can still checkmate with a knight and bishop
-        if !layout.get(PieceType::Knight).is_empty() {
+        if !self.layout.get(PieceType::Knight).is_empty() {
             return false;
         }
 
-        let bishops = layout.get(PieceType::Bishop);
+        let bishops = self.layout.get(PieceType::Bishop);
 
         // We only have bishops on the board, and the game is drawn
         // if all of them are on the same color

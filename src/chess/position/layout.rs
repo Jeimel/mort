@@ -2,13 +2,13 @@ use types::{Color, PieceType, Square, SquareSet};
 
 use crate::chess::attacks;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct PieceLayout {
-    pub colors: [SquareSet; 2],
-    pub kings: [Square; 2],
-    pub rooks: SquareSet,
-    pub bishops: SquareSet,
-    pub pawns: SquareSet,
+    pub(super) colors: [SquareSet; 2],
+    pub(super) kings: [Square; 2],
+    pub(super) rooks: SquareSet,
+    pub(super) bishops: SquareSet,
+    pub(super) pawns: SquareSet,
 }
 
 impl PieceLayout {
@@ -76,6 +76,10 @@ impl PieceLayout {
             PieceType::King => self.kings[color] = sq,
             _ => {}
         }
+    }
+
+    pub(crate) fn king_attacked(&self, color: Color) -> bool {
+        self.attacked(self.kings[color], color, self.all())
     }
 
     fn pawns(&self) -> SquareSet {

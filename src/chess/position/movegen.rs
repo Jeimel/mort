@@ -1,8 +1,8 @@
 use types::{Color, Move, MoveFlag, MoveList, PieceType, Rank, Square, SquareSet};
 
-use crate::chess::attacks;
+use crate::chess::{attacks, position::hashing::zobrist};
 
-use super::Board;
+use super::Position;
 
 macro_rules! push_loop {
     ($moves:expr, $set:expr, $start:expr, $flag:expr) => {
@@ -12,8 +12,12 @@ macro_rules! push_loop {
     };
 }
 
-impl Board {
-    pub(in crate::chess) fn make_move(&mut self, mov: Move, stm: Color) -> bool {
+impl Position {
+    pub fn legal(&self, _: Move) -> bool {
+        todo!()
+    }
+
+    pub fn make_move(&mut self, mov: Move) -> bool {
         const EN_PASSANT_ATTACK: [Rank; 2] = [Rank::Three, Rank::Six];
         const EN_PASSANT_CAPTURE: [Rank; 2] = [Rank::Four, Rank::Five];
 
@@ -23,14 +27,20 @@ impl Board {
         const CASTLING_KING_START: [Square; 2] = [Square::H1, Square::H8];
         const CASTLING_KING_TARGET: [Square; 2] = [Square::F1, Square::F8];
 
+        let stm = self.stm;
         let start = mov.start();
         let target = mov.target();
         let flag = mov.flag();
 
         let piece = self.piece_at(start);
 
+        // We always flip the value for the side to move
+        self.zobrist ^= zobrist::SIDE;
+
         self.en_passant = None;
         self.castling.remove(start, target);
+        self.stm = !self.stm;
+        self.ply += 1;
         self.rule50_ply += 1;
 
         // The fifty move counter is resetted on a pawn move
@@ -65,7 +75,7 @@ impl Board {
                 PieceType::Pawn,
             ),
             _ => {}
-        };
+        }
 
         // Remove our piece from the current square
         self.toggle(start, stm, piece);
@@ -86,19 +96,23 @@ impl Board {
         // Add our new piece back on the board
         self.toggle(target, stm, piece);
 
-        self.check(stm)
+        self.layout.king_attacked(stm)
     }
 
-    pub(in crate::chess) fn gen_moves(&self, stm: Color) -> MoveList {
+    pub fn unmake_move(&self, _: Move) {
+        todo!()
+    }
+
+    pub fn gen_moves(&self) -> MoveList {
         // We set the capacity to the average branching factor, which reduces uncessary allocations
         // without occupying too much memory
         let mut moves = MoveList::with_capacity(35);
 
-        let us = self.layout.color(stm);
-        let them = self.layout.color(!stm);
+        let us = self.layout.color(self.stm);
+        let them = self.layout.color(!self.stm);
         let occ = self.layout.all();
 
-        self.add_pawns(stm, &mut moves, us, them, occ);
+        self.add_pawns(self.stm, &mut moves, us, them, occ);
 
         for piece in [
             PieceType::Knight,
@@ -111,8 +125,8 @@ impl Board {
         }
 
         // We can't castle, if either our king is in check or we already did it
-        if !(self.check(stm) || self.castling.is_empty(stm)) {
-            self.add_castling(stm, &mut moves);
+        if !(self.check() || self.castling.is_empty(self.stm)) {
+            self.add_castling(self.stm, &mut moves, occ);
         }
 
         moves
@@ -228,34 +242,20 @@ impl Board {
         }
     }
 
-    fn add_castling(&self, color: Color, moves: &mut MoveList) {
+    fn add_castling(&self, color: Color, moves: &mut MoveList, occ: SquareSet) {
         const KING_MASK: [SquareSet; 2] = [SquareSet(0b01100000), SquareSet(0b01100000 << 56)];
         const QUEEN_MASK: [SquareSet; 2] = [SquareSet(0b00001110), SquareSet(0b00001110 << 56)];
-
-        const KING_ATTACK: [SquareSet; 2] = [SquareSet(0b01100000), SquareSet(0b01100000 << 56)];
-        const QUEEN_ATTACK: [SquareSet; 2] = [SquareSet(0b00001100), SquareSet(0b00001100 << 56)];
 
         const KING_TARGET: [Square; 2] = [Square::G1, Square::G8];
         const QUEEN_TARGET: [Square; 2] = [Square::C1, Square::C8];
 
-        let occ = self.layout.all();
         let king = self.layout.kings[color];
 
-        if self.castling.kingside(color)
-            && (occ & KING_MASK[color]).is_empty()
-            && KING_ATTACK[color]
-                .iter()
-                .all(|sq| !self.layout.attacked(sq, color, occ))
-        {
+        if self.castling.kingside(color) && (occ & KING_MASK[color]).is_empty() {
             moves.push(Move::new(king, KING_TARGET[color], MoveFlag::KING_CASTLE));
         }
 
-        if self.castling.queenside(color)
-            && (occ & QUEEN_MASK[color]).is_empty()
-            && QUEEN_ATTACK[color]
-                .iter()
-                .all(|sq| !self.layout.attacked(sq, color, occ))
-        {
+        if self.castling.queenside(color) && (occ & QUEEN_MASK[color]).is_empty() {
             moves.push(Move::new(king, QUEEN_TARGET[color], MoveFlag::QUEEN_CASTLE));
         }
     }

@@ -1,8 +1,8 @@
-use types::{Color, File, PieceType, Rank, Square};
+use types::{Castling, Color, File, PieceType, Rank, Square};
 
 use crate::syntax_error;
 
-use super::Board;
+use super::{Position, layout::PieceLayout};
 
 macro_rules! ok_or {
     ($result:expr, $expected:expr, $found:expr) => {
@@ -12,25 +12,33 @@ macro_rules! ok_or {
 
 pub type FenParseError = String;
 
-impl Board {
-    pub(in crate::chess) fn from_fen(&mut self, fen: &str) -> Result<(Color, u16), FenParseError> {
-        self.clear();
+impl Position {
+    pub fn parse_fen(fen: &str) -> Result<Position, FenParseError> {
+        let mut pos = Self {
+            layout: PieceLayout::EMPTY,
+            castling: Castling::EMPTY,
+            en_passant: None,
+            mailbox: [None; 64],
+            stm: Color::White,
+            ply: 0,
+            rule50_ply: 0,
+            zobrist: 0,
+        };
 
         let fields: Vec<&str> = fen.split_ascii_whitespace().collect();
         if fields.len() != 6 {
             return Err(format!("expected 6 fields, but found {}", fields.len()));
         }
 
-        self.parse_board(fields[0])?;
-        self.parse_castling(fields[2])?;
-        self.parse_en_passant(fields[3])?;
+        pos.parse_board(fields[0])?;
+        pos.parse_castling(fields[2])?;
+        pos.parse_en_passant(fields[3])?;
 
-        self.rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
+        pos.stm = ok_or!(Color::try_from(fields[1]).ok(), "'w' or 'b'", fields[1]);
+        pos.ply = ok_or!(fields[5].parse().ok(), "positive integer", fields[5]);
+        pos.rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
 
-        let stm = ok_or!(Color::try_from(fields[1]).ok(), "'w' or 'b'", fields[1]);
-        let ply = ok_or!(fields[5].parse().ok(), "positive integer", fields[5]);
-
-        Ok((stm, ply))
+        Ok(pos)
     }
 
     fn parse_board(&mut self, fen: &str) -> Result<(), FenParseError> {

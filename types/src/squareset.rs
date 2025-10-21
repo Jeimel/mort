@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, Sub};
+use std::ops::{BitAnd, BitOr, Not, Sub};
 
 use crate::Square;
 
@@ -75,6 +75,14 @@ impl BitAnd for SquareSet {
 
     fn bitand(self, rhs: Self) -> Self::Output {
         Self(self.0 & rhs.0)
+    }
+}
+
+impl Not for SquareSet {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self(!self.0)
     }
 }
 

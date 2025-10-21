@@ -15,24 +15,27 @@ pub const BISHOP: Slider = Slider {
 };
 
 impl Slider {
-    pub fn moves(&self, sq: Square, blockers: SquareSet) -> SquareSet {
-        let mut moves = SquareSet::EMPTY;
+    pub const fn moves(&self, sq: Square, blockers: SquareSet) -> SquareSet {
+        let (mut moves, mut i) = (0, 0);
 
-        for &(delta_file, delta_rank) in &self.deltas {
+        while i < self.deltas.len() {
+            let (delta_file, delta_rank) = self.deltas[i];
             let mut ray = sq;
 
-            while (ray.set() & blockers) == SquareSet::EMPTY {
+            while (ray.set().0 & blockers.0) == 0 {
                 match ray.try_delta(delta_file, delta_rank) {
                     Some(sq) => {
                         ray = sq;
-                        moves = moves | ray.set();
+                        moves = moves | ray.set().0;
                     }
                     None => break,
                 }
             }
+
+            i += 1;
         }
 
-        moves
+        SquareSet(moves)
     }
 
     pub const fn blockers(&self, sq: Square) -> SquareSet {

@@ -1,6 +1,58 @@
 use std::ops::{Index, IndexMut};
 
-use crate::TypeParseError;
+use crate::{Color, TypeParseError};
+
+#[repr(u8)]
+#[derive(Clone, Copy)]
+pub enum Piece {
+    WhitePawn,
+    BlackPawn,
+    WhiteKnight,
+    BlackKnight,
+    WhiteBishop,
+    BlackBishop,
+    WhiteRook,
+    BlackRook,
+    WhiteQueen,
+    BlackQueen,
+    WhiteKing,
+    BlackKing,
+}
+
+impl Piece {
+    pub const fn new(index: u8) -> Option<Self> {
+        if index < 12 {
+            // Safety: `index` has a corresponding `Piece` variant
+            Some(unsafe { std::mem::transmute(index) })
+        } else {
+            None
+        }
+    }
+
+    pub const fn from(color: Color, piece: PieceType) -> Self {
+        // Safety: the types `Color` and `PieceType` form a valid `Piece`
+        unsafe { std::mem::transmute(((piece as u8) << 1) | color as u8) }
+    }
+
+    pub const fn typ(self) -> PieceType {
+        PieceType::new(self as u8 >> 1).unwrap()
+    }
+
+    pub const fn color(self) -> Color {
+        Color::new(self as u8 & 1).unwrap()
+    }
+}
+
+impl From<Piece> for char {
+    fn from(value: Piece) -> Self {
+        let piece = char::from(value.typ());
+
+        match value.color() {
+            Color::White => piece.to_ascii_uppercase(),
+            Color::Black => piece,
+        }
+    }
+}
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]

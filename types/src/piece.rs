@@ -54,6 +54,28 @@ impl From<Piece> for char {
     }
 }
 
+impl TryFrom<char> for Piece {
+    type Error = TypeParseError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'P' => Ok(Piece::WhitePawn),
+            'p' => Ok(Piece::BlackPawn),
+            'N' => Ok(Piece::WhiteKnight),
+            'n' => Ok(Piece::BlackKnight),
+            'B' => Ok(Piece::WhiteBishop),
+            'b' => Ok(Piece::BlackBishop),
+            'R' => Ok(Piece::WhiteRook),
+            'r' => Ok(Piece::BlackRook),
+            'Q' => Ok(Piece::WhiteQueen),
+            'q' => Ok(Piece::BlackQueen),
+            'K' => Ok(Piece::WhiteKing),
+            'k' => Ok(Piece::BlackKing),
+            _ => Err(TypeParseError::InvalidPieceSymbol(value)),
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]
 pub enum PieceType {

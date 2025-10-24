@@ -5,7 +5,7 @@ use std::{
     thread,
 };
 
-use types::Color;
+use types::{Color, MoveList};
 
 use crate::{
     Position,
@@ -64,7 +64,7 @@ pub fn run() {
             "ucinewgame" => pos = Position::from_fen(START_POS).unwrap(),
             "isready" => println!("readyok"),
             "go" => {
-                handle_go(commands, &mut pos, &mut buffer).unwrap_or_else(|err| println!("{}", err))
+                handle_go(&pos, commands, &mut buffer).unwrap_or_else(|err| println!("{}", err))
             }
             "d" => println!("{}", pos),
             "eval" => println!("score cp {}", evaluate(&pos)),
@@ -107,11 +107,10 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
 
     // We already skipped the "moves" token earlier, so we can directly play the moves if any
     while let Some(str) = commands.next() {
-        match pos
-            .gen_moves()
-            .iter()
-            .find(|mov| &format!("{}", mov) == *str)
-        {
+        let mut moves = MoveList::new();
+        pos.generate::<true>(&mut moves);
+
+        match moves.iter().find(|mov| &format!("{}", mov) == *str) {
             Some(mov) => pos.make_move(*mov),
             None => return Err(Error::Uci(syntax_error!("valid move", str))),
         };
@@ -121,18 +120,25 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
 }
 
 fn handle_go(
-    commands: Vec<&str>,
     pos: &Position,
+    commands: Vec<&str>,
     buffer: &mut Option<String>,
 ) -> Result<(), Error> {
     let abort = AtomicBool::new(false);
 
-    let (limits, depth) = handle_limits(&mut commands.iter(), pos.stm())?;
+    let limits = handle_limits(&mut commands.iter(), pos.stm())?;
+
+    if limits.perft != 0 {
+        crate::perft::<true>(&mut pos.clone(), limits.perft);
+
+        return Ok(());
+    }
+
     let mut main = ThreadData::new(&abort, pos.clone(), true, limits);
 
     thread::scope(|s| {
         s.spawn(|| {
-            search::go(&mut main, depth);
+            search::go(&mut main);
 
             println!("bestmove {}", main.best.unwrap());
         });
@@ -143,7 +149,7 @@ fn handle_go(
     Ok(())
 }
 
-fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<(SearchLimit, u16), Error> {
+fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<SearchLimit, Error> {
     macro_rules! parse {
         (match ($commands:expr, $key:ident) { $($value:literal => $var:expr),* $(,)? }) => {
             match *$key {
@@ -166,7 +172,6 @@ fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<(SearchLimit, 
     }
 
     let mut limits = SearchLimit::MAX;
-    let mut depth = 64;
     let mut left = [u128::MAX, u128::MAX];
     let mut increment = [0, 0];
 
@@ -176,7 +181,8 @@ fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<(SearchLimit, 
         }
 
         parse!(match (commands, key) {
-            "depth" => depth,
+            "perft" => limits.perft,
+            "depth" => limits.depth,
             "nodes" => limits.nodes,
             "wtime" => left[Color::White],
             "btime" => left[Color::Black],
@@ -187,7 +193,7 @@ fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<(SearchLimit, 
 
     limits.time = left[stm] / 20 + increment[stm] / 2;
 
-    Ok((limits, depth))
+    Ok(limits)
 }
 
 fn handle_search_input(abort: &AtomicBool) -> Option<String> {

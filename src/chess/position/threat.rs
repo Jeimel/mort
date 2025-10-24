@@ -39,7 +39,7 @@ impl Threat {
 
             // If we have no blocker our king is already in check, and
             // if we have more than one blocker, the sniper is not a threat
-            if !blocker.is_empty() && blocker.is_one() {
+            if !blocker.is_empty() && blocker.is_less_two() {
                 self.blockers[color] = self.blockers[color] | blocker;
             }
         }

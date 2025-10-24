@@ -18,6 +18,10 @@ impl SquareSet {
         (self.0 & sq.set().0) != 0
     }
 
+    pub fn is_less_two(&self) -> bool {
+        self.reset_lsb().is_empty()
+    }
+
     pub fn toggle(&mut self, sq: Square) {
         self.0 = self.0 ^ sq.set().0;
     }

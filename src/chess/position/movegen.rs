@@ -1,8 +1,10 @@
 use types::{Color, Move, MoveFlag, MoveList, PieceType, Rank, Square, SquareSet};
 
-use crate::chess::{attacks, position::hashing::zobrist};
+use crate::chess::attacks;
 
 use super::Position;
+
+include!(concat!(env!("OUT_DIR"), "/squareset_tables.rs"));
 
 macro_rules! push_loop {
     ($moves:expr, $set:expr, $start:expr, $flag:expr) => {
@@ -13,131 +15,105 @@ macro_rules! push_loop {
 }
 
 impl Position {
-    pub fn legal(&self, _: Move) -> bool {
-        todo!()
-    }
-
-    pub fn make_move(&mut self, mov: Move) -> bool {
-        const EN_PASSANT_ATTACK: [Rank; 2] = [Rank::Three, Rank::Six];
-        const EN_PASSANT_CAPTURE: [Rank; 2] = [Rank::Four, Rank::Five];
-
-        const CASTLING_QUEEN_START: [Square; 2] = [Square::A1, Square::A8];
-        const CASTLING_QUEEN_TARGET: [Square; 2] = [Square::D1, Square::D8];
-
-        const CASTLING_KING_START: [Square; 2] = [Square::H1, Square::H8];
-        const CASTLING_KING_TARGET: [Square; 2] = [Square::F1, Square::F8];
+    pub fn legal(&self, mov: Move) -> bool {
+        const KING_PATH: [SquareSet; 2] = [SquareSet(0b0110_0000), SquareSet(0b0110_0000 << 56)];
+        const QUEEN_PATH: [SquareSet; 2] = [SquareSet(0b0000_1100), SquareSet(0b0000_1100 << 56)];
 
         let stm = self.stm;
-        let start = mov.start();
-        let target = mov.target();
-        let flag = mov.flag();
-
-        let piece = self.piece_at(start);
-
-        // We always flip the value for the side to move
-        self.zobrist ^= zobrist::SIDE;
-
-        self.en_passant = None;
-        self.castling.remove(start, target);
-        self.stm = !self.stm;
-        self.ply += 1;
-        self.rule50_ply += 1;
-
-        // The fifty move counter is resetted on a pawn move
-        if piece == PieceType::Pawn {
-            self.rule50_ply = 0;
-        }
-
-        match flag {
-            // Store en passant target square for next turn
-            MoveFlag::DOUBLE_PAWN => {
-                self.en_passant = Some(Square::from(start.file(), EN_PASSANT_ATTACK[stm]))
-            }
-            // Place rook on queenside castle target, which is either D1 or D8
-            MoveFlag::QUEEN_CASTLE => {
-                self.toggle(CASTLING_QUEEN_START[stm], stm, PieceType::Rook);
-                self.toggle(CASTLING_QUEEN_TARGET[stm], stm, PieceType::Rook);
-            }
-            // Place rook on kinsgide castle target, which is either F1 or F8
-            MoveFlag::KING_CASTLE => {
-                self.toggle(CASTLING_KING_START[stm], stm, PieceType::Rook);
-                self.toggle(CASTLING_KING_TARGET[stm], stm, PieceType::Rook);
-            }
-            // Remove their piece from the board, and reset the fifty move counter
-            MoveFlag::CAPTURE => {
-                self.toggle(target, !stm, self.piece_at(target));
-                self.rule50_ply = 0;
-            }
-            // Remove their captured pawn
-            MoveFlag::EN_PASSANT => self.toggle(
-                Square::from(target.file(), EN_PASSANT_CAPTURE[!stm]),
-                !stm,
-                PieceType::Pawn,
-            ),
-            _ => {}
-        }
-
-        // Remove our piece from the current square
-        self.toggle(start, stm, piece);
-
-        // Determine which piece must be placed on the target square
-        let piece = match mov.flag().promotion_piece() {
-            // We promote our piece
-            Some(piece) => piece,
-            // We just move our piece to the target square
-            None => piece,
-        };
-
-        // We captured their piece to promote ours
-        if self.layout.all().is_set(target) {
-            self.toggle(target, !stm, self.piece_at(target));
-        }
-
-        // Add our new piece back on the board
-        self.toggle(target, stm, piece);
-
-        self.layout.king_attacked(stm)
-    }
-
-    pub fn unmake_move(&self, _: Move) {
-        todo!()
-    }
-
-    pub fn gen_moves(&self) -> MoveList {
-        // We set the capacity to the average branching factor, which reduces uncessary allocations
-        // without occupying too much memory
-        let mut moves = MoveList::with_capacity(35);
-
-        let us = self.layout.color(self.stm);
-        let them = self.layout.color(!self.stm);
         let occ = self.layout.all();
 
-        self.add_pawns(self.stm, &mut moves, us, them, occ);
-
-        for piece in [
-            PieceType::Knight,
-            PieceType::Bishop,
-            PieceType::Rook,
-            PieceType::Queen,
-            PieceType::King,
-        ] {
-            self.add_attacks(piece, &mut moves, us, them, occ);
+        if mov.flag() == MoveFlag::KING_CASTLE {
+            return self.layout.attacked(KING_PATH[stm], stm, occ);
         }
 
-        // We can't castle, if either our king is in check or we already did it
-        if !(self.check() || self.castling.is_empty(self.stm)) {
-            self.add_castling(self.stm, &mut moves, occ);
+        if mov.flag() == MoveFlag::QUEEN_CASTLE {
+            return self.layout.attacked(QUEEN_PATH[stm], stm, occ);
         }
 
-        moves
+        let start = mov.start();
+        let target = mov.target();
+
+        if mov.flag() == MoveFlag::EN_PASSANT {
+            let king = self.layout.kings[stm];
+
+            let capture = target.set().rotate([56, 8][stm]);
+            let occ = (self.layout.all() - start.set() - capture) | target.set();
+
+            let rooks = attacks::rook(king, occ) & self.layout.rooks;
+            let bishops = attacks::bishop(king, occ) & self.layout.bishops;
+
+            // Is our king in check after making the en passant capture?
+            return ((rooks | bishops) & self.layout.color(!stm)).is_empty();
+        }
+
+        // If the king moves, we must check if the target square is being attacked or not
+        if self.layout.piece_at(start) == PieceType::King {
+            #[rustfmt::skip]
+            return self.layout.attackers(target, self.stm, occ - start.set()).is_empty();
+        }
+
+        // The start square must either not be a blocker of our king,
+        // or the piece moves towards the threat
+        (self.threat.blockers(self.stm) & start.set()).is_empty()
+            || !(LINE[start][target] & self.layout.kings[self.stm].set()).is_empty()
     }
 
-    fn add_pawns(
+    /// Generatae all pseudo-legal moves given the current position.
+    ///
+    /// `QUIET` determines whether to include quiet moves or not
+    pub fn generate<const QUIET: bool>(&self, moves: &mut MoveList) {
+        let checkers = self.threat.checkers();
+
+        // Is our king not in check?
+        match checkers.is_empty() {
+            true => self.generate_all::<false, QUIET>(moves, checkers),
+            false => self.generate_all::<true, QUIET>(moves, checkers),
+        }
+    }
+
+    fn generate_all<const EVADING: bool, const QUIET: bool>(
+        &self,
+        moves: &mut MoveList,
+        checkers: SquareSet,
+    ) {
+        let occ = self.layout.all();
+
+        let mut target = SquareSet::EMPTY;
+
+        // We only have to generate non-king moves if our king is not in double check
+        if !EVADING || checkers.is_less_two() {
+            target = match EVADING {
+                true => BETWEEN[self.layout.kings[self.stm]][checkers.index_lsb() as usize],
+                false => !self.layout.color(self.stm),
+            };
+
+            self.generate_pawns::<QUIET>(self.stm, moves, target, occ);
+
+            self.generate_attacks::<QUIET>(PieceType::Knight, attacks::knight, moves, target, occ);
+            self.generate_attacks::<QUIET>(PieceType::Bishop, attacks::bishop, moves, target, occ);
+            self.generate_attacks::<QUIET>(PieceType::Rook, attacks::rook, moves, target, occ);
+            self.generate_attacks::<QUIET>(PieceType::Queen, attacks::queen, moves, target, occ);
+        }
+
+        // Is `target` potentially representing the line between our king and the threatening piece?
+        if EVADING {
+            // Reset `target` so our king is moving away from the threat
+            target = !self.layout.color(self.stm);
+        }
+
+        self.generate_attacks::<QUIET>(PieceType::King, attacks::king, moves, target, occ);
+
+        // We can't castle, if either our king is in check or we already did it
+        if QUIET && !EVADING && !self.restore.castling.is_empty(self.stm) {
+            self.generate_castling(self.stm, moves, occ);
+        }
+    }
+
+    fn generate_pawns<const QUIET: bool>(
         &self,
         color: Color,
         moves: &mut MoveList,
-        us: SquareSet,
-        them: SquareSet,
+        target: SquareSet,
         occ: SquareSet,
     ) {
         const ROTATION: [u32; 2] = [8, 56];
@@ -145,11 +121,11 @@ impl Position {
         const PROMOTION_RANK: [SquareSet; 2] = [Rank::Eight.set(), Rank::One.set()];
         const PRE_PROMOTION_RANK: [SquareSet; 2] = [Rank::Seven.set(), Rank::Two.set()];
 
-        let pawns = self.layout.get(PieceType::Pawn) & us;
+        for start in (self.layout.get(PieceType::Pawn) & self.layout.color(color)).iter() {
+            let set = start.set();
 
-        for start in pawns.iter() {
             // The intersection between our attacks and their pieces yields all captures
-            let captures = attacks::pawn(color, start) & them;
+            let captures = attacks::pawn(color, start) & self.layout.color(!color);
 
             // Captures and promotions within a single move are a special case, which we can filter
             // through the intersection between all captures and the respective last rank
@@ -158,7 +134,7 @@ impl Position {
             // We don't consider captures and promotions here, so we remove
             // all captures on the respective last rank
             let captures = captures - PROMOTION_RANK[color];
-            push_loop!(moves, captures, start, MoveFlag::CAPTURE);
+            push_loop!(moves, captures & target, start, MoveFlag::CAPTURE);
 
             // Now, we consider promotions. There exist two cases:
             // 1. Quiet promotion: All pawns on the penulimate rank,
@@ -167,10 +143,12 @@ impl Position {
             //    their pieces on the last rank.
 
             // The moves for the first case are generated via single rank shift
-            let promo = (start.set() & PRE_PROMOTION_RANK[color]).rotate(ROTATION[color]) - occ;
+            let promo = (set & PRE_PROMOTION_RANK[color]).rotate(ROTATION[color]) - occ;
 
             // We can promote our pawn to a knight, bishop, rook, or queen. Therefore, we have to
             // generate each possible piece and target square combination
+            //
+            // NOTE: Currently all promotions are considered non-quiet
             for piece in [
                 PieceType::Knight,
                 PieceType::Bishop,
@@ -179,83 +157,82 @@ impl Position {
             ] {
                 let flag = MoveFlag::promotion(piece);
 
-                push_loop!(moves, promo, start, flag);
-                push_loop!(moves, promo_captures, start, flag);
+                push_loop!(moves, promo & target, start, flag);
+                push_loop!(moves, promo_captures & target, start, flag);
             }
 
             // There exists an en passant capture if we have a valid target square,
             // which our pawn can attack
-            if let Some(target) = self.en_passant
+            if let Some(target) = self.restore.en_passant
                 && !(target.set() & attacks::pawn(color, start)).is_empty()
             {
                 moves.push(Move::new(start, target, MoveFlag::EN_PASSANT));
             }
 
-            // We have to exclude all promotions pawns, as those are already calculated. To
-            // calculate the push, we just rotate the square set in the corresponding direction,
-            // and remove all pushes, which advance on a occupied squaure
-            let single = (start.set() - PRE_PROMOTION_RANK[color]).rotate(ROTATION[color]) - occ;
-            push_loop!(moves, single, start, MoveFlag::QUIET);
+            if !QUIET {
+                continue;
+            }
 
-            // We can early return if there exists no single push,
-            // because it can be seen as precondition for a double push
+            // We have to exclude all promoting pawns, as those are already calculated.
+            // To calculate the push, we just rotate the square set in the corresponding
+            // direction, and remove all pushes, which advance to an occupied square
+            let single = (set - PRE_PROMOTION_RANK[color]).rotate(ROTATION[color]) - occ;
+            push_loop!(moves, single & target, start, MoveFlag::QUIET);
+
+            // If the path for a single push is blocked, we cannot double push our pawn
             if single.is_empty() {
                 continue;
             }
 
-            // A pawn can only advance two squares, if present on the enemey penultimate promotion
-            // rank, which we can filter out. Next, we double the shift, as we advance two
-            // squares, and again, remove occupied squares
-            let double =
-                (start.set() & PRE_PROMOTION_RANK[!color]).rotate(2 * ROTATION[color]) - occ;
-            push_loop!(moves, double, start, MoveFlag::DOUBLE_PAWN);
+            // A pawn can only advance two squares, if present on the enemey penultimate
+            // promotion rank, which we can filter out. Next, we double the shift, as we
+            // advance two squares, and again, remove occupied squares
+            let double = (set & PRE_PROMOTION_RANK[!color]).rotate(2 * ROTATION[color]) - occ;
+            push_loop!(moves, double & target, start, MoveFlag::DOUBLE_PAWN);
         }
     }
 
-    fn add_attacks(
+    fn generate_attacks<const QUIET: bool>(
         &self,
         piece: PieceType,
+        attacks: fn(Square, SquareSet) -> SquareSet,
         moves: &mut MoveList,
-        us: SquareSet,
-        them: SquareSet,
+        target: SquareSet,
         occ: SquareSet,
     ) {
-        let pieces = self.layout.get(piece) & us;
+        let pieces = self.layout.get(piece) & self.layout.color(self.stm);
 
         for start in pieces.iter() {
-            let attacks = match piece {
-                PieceType::Knight => attacks::knight(start),
-                PieceType::Bishop => attacks::bishop(start, occ),
-                PieceType::Rook => attacks::rook(start, occ),
-                PieceType::Queen => attacks::rook(start, occ) | attacks::bishop(start, occ),
-                PieceType::King => attacks::king(start),
-                _ => unreachable!(),
-            };
+            let attacks = attacks(start, occ);
 
             // The intersection between our attacks and their pieces yields all captures
-            let captures = attacks & them;
-            push_loop!(moves, captures, start, MoveFlag::CAPTURE);
+            let captures = attacks & self.layout.color(!self.stm);
+            push_loop!(moves, captures & target, start, MoveFlag::CAPTURE);
+
+            if !QUIET {
+                continue;
+            }
 
             // The difference between our attacks and all blockers yields all quiet moves
             let quiets = attacks - occ;
-            push_loop!(moves, quiets, start, MoveFlag::QUIET);
+            push_loop!(moves, quiets & target, start, MoveFlag::QUIET);
         }
     }
 
-    fn add_castling(&self, color: Color, moves: &mut MoveList, occ: SquareSet) {
-        const KING_MASK: [SquareSet; 2] = [SquareSet(0b01100000), SquareSet(0b01100000 << 56)];
-        const QUEEN_MASK: [SquareSet; 2] = [SquareSet(0b00001110), SquareSet(0b00001110 << 56)];
+    fn generate_castling(&self, color: Color, moves: &mut MoveList, occ: SquareSet) {
+        const KING_MASK: [SquareSet; 2] = [SquareSet(0b0110_0000), SquareSet(0b0110_0000 << 56)];
+        const QUEEN_MASK: [SquareSet; 2] = [SquareSet(0b0000_1110), SquareSet(0b0000_1110 << 56)];
 
         const KING_TARGET: [Square; 2] = [Square::G1, Square::G8];
         const QUEEN_TARGET: [Square; 2] = [Square::C1, Square::C8];
 
         let king = self.layout.kings[color];
 
-        if self.castling.kingside(color) && (occ & KING_MASK[color]).is_empty() {
+        if self.restore.castling.kingside(color) && (occ & KING_MASK[color]).is_empty() {
             moves.push(Move::new(king, KING_TARGET[color], MoveFlag::KING_CASTLE));
         }
 
-        if self.castling.queenside(color) && (occ & QUEEN_MASK[color]).is_empty() {
+        if self.restore.castling.queenside(color) && (occ & QUEEN_MASK[color]).is_empty() {
             moves.push(Move::new(king, QUEEN_TARGET[color], MoveFlag::QUEEN_CASTLE));
         }
     }

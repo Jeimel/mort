@@ -2,7 +2,7 @@ use types::{Color, SquareSet};
 
 use super::{layout::PieceLayout, movegen::BETWEEN};
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Threat {
     /// Pieces, which block threats to the respective king
     blockers: [SquareSet; 2],

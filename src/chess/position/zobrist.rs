@@ -10,11 +10,11 @@ impl Position {
     pub fn zobrist(&self) -> Key {
         let mut zobrist = self.zobrist;
 
-        if let Some(en_passant) = self.en_passant {
+        if let Some(en_passant) = self.restore.en_passant {
             zobrist ^= EN_PASSANT[en_passant.file()];
         }
 
-        zobrist ^ CASTLING[self.castling]
+        zobrist ^ CASTLING[self.restore.castling]
     }
 }
 

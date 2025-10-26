@@ -1,8 +1,8 @@
-use types::{Castling, Color, File, PieceType, Rank, Square};
+use types::{Color, File, Piece, Rank, Square};
 
-use crate::syntax_error;
+use crate::{chess::position::restore::RestoreInfo, error::Error, syntax_error};
 
-use super::{Position, layout::PieceLayout};
+use super::{Position, layout::PieceLayout, threat::Threat};
 
 macro_rules! ok_or {
     ($result:expr, $expected:expr, $found:expr) => {
@@ -13,15 +13,18 @@ macro_rules! ok_or {
 pub type FenParseError = String;
 
 impl Position {
-    pub fn parse_fen(fen: &str) -> Result<Position, FenParseError> {
+    pub fn from_fen(fen: &str) -> Result<Self, Error> {
+        Ok(Position::parse_fen(fen)?)
+    }
+
+    fn parse_fen(fen: &str) -> Result<Position, FenParseError> {
         let mut pos = Self {
             layout: PieceLayout::EMPTY,
-            castling: Castling::EMPTY,
-            en_passant: None,
-            mailbox: [None; 64],
+            threat: Threat::EMPTY,
+            restore: RestoreInfo::EMPTY,
+            stack: Vec::new(),
             stm: Color::White,
             ply: 0,
-            rule50_ply: 0,
             zobrist: 0,
         };
 
@@ -36,7 +39,12 @@ impl Position {
 
         pos.stm = ok_or!(Color::try_from(fields[1]).ok(), "'w' or 'b'", fields[1]);
         pos.ply = ok_or!(fields[5].parse().ok(), "positive integer", fields[5]);
-        pos.rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
+        pos.restore.rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
+
+        pos.threat.set_blockers(Color::White, &pos.layout);
+        pos.threat.set_blockers(Color::Black, &pos.layout);
+
+        pos.threat.set_checkers(pos.stm, &pos.layout);
 
         Ok(pos)
     }
@@ -60,11 +68,10 @@ impl Position {
             let file = ok_or!(File::new(col), "valid file index", col);
             let rank = ok_or!(Rank::new(row), "valid rank index", row);
 
-            let color = Color::from(c.is_ascii_lowercase());
-            let piece = PieceType::try_from(c).map_err(|err| format!("{:?}", err))?;
+            let piece = Piece::try_from(c).map_err(|err| format!("{:?}", err))?;
             let sq = Square::from(file, rank);
 
-            self.toggle(sq, color, piece);
+            self.toggle(sq, piece.color(), piece.typ());
             col += 1;
         }
 
@@ -78,10 +85,10 @@ impl Position {
 
         for c in fen.chars() {
             match c {
-                'K' => self.castling.set_kingside(Color::White),
-                'Q' => self.castling.set_queenside(Color::White),
-                'k' => self.castling.set_kingside(Color::Black),
-                'q' => self.castling.set_queenside(Color::Black),
+                'K' => self.restore.castling.set_kingside(Color::White),
+                'Q' => self.restore.castling.set_queenside(Color::White),
+                'k' => self.restore.castling.set_kingside(Color::Black),
+                'q' => self.restore.castling.set_queenside(Color::Black),
                 _ => return Err(format!("Expected 'KQkq' subset or '-', but found {}", c)),
             };
         }
@@ -99,7 +106,7 @@ impl Position {
         let file = ok_or!(File::new(mov[0] - b'a'), "valid move", fen);
         let rank = ok_or!(Rank::new(mov[1] - b'1'), "valid", fen);
 
-        self.en_passant = Some(Square::from(file, rank));
+        self.restore.en_passant = Some(Square::from(file, rank));
 
         Ok(())
     }

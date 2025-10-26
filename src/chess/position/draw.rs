@@ -4,7 +4,7 @@ use super::Position;
 
 impl Position {
     pub fn draw(&self) -> bool {
-        self.rule50_ply >= 100 || self.insufficient_material()
+        self.restore.rule50_ply >= 100 || self.insufficient_material()
     }
 
     pub fn upcoming_repetition(&self) -> bool {

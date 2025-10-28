@@ -5,7 +5,7 @@ use crate::{
     syntax_error,
 };
 
-use super::{layout::PieceLayout, threat::Threat};
+use super::layout::PieceLayout;
 
 macro_rules! ok_or {
     ($result:expr, $expected:expr, $found:expr) => {
@@ -19,7 +19,6 @@ impl Board {
     pub fn from_fen(fen: &str) -> Result<(Self, Color, u16), FenParseError> {
         let mut board = Self {
             layout: PieceLayout::EMPTY,
-            threat: Threat::EMPTY,
             state: GameState::EMPTY,
             zobrist: 0,
         };
@@ -38,10 +37,8 @@ impl Board {
 
         board.state.rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
 
-        board.threat.set_blockers(Color::White, &board.layout);
-        board.threat.set_blockers(Color::Black, &board.layout);
-
-        board.threat.set_checkers(stm, &board.layout);
+        board.state.set_blockers(stm, &board.layout);
+        board.state.set_checkers(stm, &board.layout);
 
         Ok((board, stm, ply))
     }

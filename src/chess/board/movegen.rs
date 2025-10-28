@@ -52,7 +52,7 @@ impl Board {
 
         // The start square must either not be a blocker of our king,
         // or the piece moves towards the threat
-        (self.threat.blockers(color) & start.set()).is_empty()
+        (self.state.blockers & start.set()).is_empty()
             || !(LINE[start][target] & self.layout.kings[color].set()).is_empty()
     }
 
@@ -61,7 +61,7 @@ impl Board {
     /// `QUIET` determines whether to include quiet moves or not
     #[inline(always)]
     pub fn generate<const QUIET: bool>(&self, moves: &mut MoveList, color: Color) {
-        let checkers = self.threat.checkers();
+        let checkers = self.state.checkers;
 
         // Is our king not in check?
         match checkers.is_empty() {

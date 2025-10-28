@@ -2,14 +2,12 @@ mod draw;
 mod fen;
 mod layout;
 mod movegen;
-mod threat;
 mod zobrist;
 
 pub use fen::FenParseError;
 pub use layout::PieceLayout;
+pub use movegen::BETWEEN;
 pub use zobrist::Key;
-
-use threat::Threat;
 
 use std::fmt::Display;
 
@@ -20,7 +18,6 @@ use crate::chess::state::GameState;
 #[derive(Clone)]
 pub struct Board {
     pub layout: PieceLayout,
-    pub threat: Threat,
     pub state: GameState,
     pub zobrist: Key,
 }
@@ -133,11 +130,9 @@ impl Board {
         // Add our new piece back on the board
         self.toggle(target, color, piece);
 
-        self.threat.set_blockers(Color::White, &self.layout);
-        self.threat.set_blockers(Color::Black, &self.layout);
-
-        // We have to update the checkers for the next side to move only
-        self.threat.set_checkers(!color, &self.layout);
+        // We have to update for the next side to move only
+        self.state.set_blockers(!color, &self.layout);
+        self.state.set_checkers(!color, &self.layout);
     }
 
     pub fn unmake_move(&mut self, mov: Move, color: Color, state: GameState) {
@@ -178,11 +173,6 @@ impl Board {
         }
 
         self.toggle(start, color, piece);
-
-        self.threat.set_blockers(Color::White, &self.layout);
-        self.threat.set_blockers(Color::Black, &self.layout);
-
-        self.threat.set_checkers(!color, &self.layout);
 
         self.state = state;
     }

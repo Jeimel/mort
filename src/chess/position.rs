@@ -73,7 +73,7 @@ impl Position {
     }
 
     pub fn check(&self) -> bool {
-        !self.board.threat.checkers().is_empty()
+        !self.board.state.checkers.is_empty()
     }
 
     pub fn draw(&self) -> bool {

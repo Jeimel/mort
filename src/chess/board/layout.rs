@@ -5,13 +5,13 @@ use crate::chess::attacks;
 #[derive(Clone, Copy)]
 pub struct PieceLayout {
     // Piece-centric board representation
-    pub(super) colors: [SquareSet; 2],
-    pub(super) kings: [Square; 2],
-    pub(super) rooks: SquareSet,
-    pub(super) bishops: SquareSet,
-    pub(super) pawns: SquareSet,
+    pub colors: [SquareSet; 2],
+    pub kings: [Square; 2],
+    pub rooks: SquareSet,
+    pub bishops: SquareSet,
+    pub pawns: SquareSet,
     // Square-centric board representation
-    pub(super) mailbox: [Option<Piece>; 64],
+    pub mailbox: [Option<Piece>; 64],
 }
 
 impl PieceLayout {

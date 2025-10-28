@@ -1,25 +1,29 @@
+use types::MoveList;
+
 use crate::Position;
 
-pub fn perft<const ROOT: bool>(pos: &mut Position, depth: usize) -> usize {
+pub fn perft<const ROOT: bool>(pos: &mut Position, depth: u16) -> usize {
     if depth == 0 {
         return 1;
     }
 
-    let mut nodes = 0;
+    let (mut moves, mut nodes) = (MoveList::new(), 0);
+    pos.generate::<true>(&mut moves);
 
-    for mov in pos.gen_moves() {
-        if !pos.make_move(mov) {
+    for mov in moves {
+        if !pos.legal(mov) {
             continue;
         }
 
+        pos.make_move(mov);
         let child_nodes = perft::<false>(pos, depth - 1);
+        pos.unmake_move(mov);
+
         nodes += child_nodes;
 
         if ROOT {
             println!("{}: {}", mov, child_nodes);
         }
-
-        pos.unmake_move();
     }
 
     if ROOT {

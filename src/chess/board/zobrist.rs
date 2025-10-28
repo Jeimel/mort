@@ -1,20 +1,18 @@
-use super::Position;
-
 use types::const_for;
 
-use crate::rng::XorShiftState;
+use crate::{chess::board::Board, rng::XorShiftState};
 
 pub type Key = u64;
 
-impl Position {
+impl Board {
     pub fn zobrist(&self) -> Key {
         let mut zobrist = self.zobrist;
 
-        if let Some(en_passant) = self.restore.en_passant {
+        if let Some(en_passant) = self.state.en_passant {
             zobrist ^= EN_PASSANT[en_passant.file()];
         }
 
-        zobrist ^ CASTLING[self.restore.castling]
+        zobrist ^ CASTLING[self.state.castling]
     }
 }
 

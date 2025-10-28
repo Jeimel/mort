@@ -1,8 +1,11 @@
 use types::{Color, File, Piece, Rank, Square};
 
-use crate::{chess::position::restore::RestoreInfo, error::Error, syntax_error};
+use crate::{
+    chess::{board::Board, state::GameState},
+    syntax_error,
+};
 
-use super::{Position, layout::PieceLayout, threat::Threat};
+use super::{layout::PieceLayout, threat::Threat};
 
 macro_rules! ok_or {
     ($result:expr, $expected:expr, $found:expr) => {
@@ -12,19 +15,12 @@ macro_rules! ok_or {
 
 pub type FenParseError = String;
 
-impl Position {
-    pub fn from_fen(fen: &str) -> Result<Self, Error> {
-        Ok(Position::parse_fen(fen)?)
-    }
-
-    fn parse_fen(fen: &str) -> Result<Position, FenParseError> {
-        let mut pos = Self {
+impl Board {
+    pub fn from_fen(fen: &str) -> Result<(Self, Color, u16), FenParseError> {
+        let mut board = Self {
             layout: PieceLayout::EMPTY,
             threat: Threat::EMPTY,
-            restore: RestoreInfo::EMPTY,
-            stack: Vec::new(),
-            stm: Color::White,
-            ply: 0,
+            state: GameState::EMPTY,
             zobrist: 0,
         };
 
@@ -33,20 +29,21 @@ impl Position {
             return Err(format!("expected 6 fields, but found {}", fields.len()));
         }
 
-        pos.parse_board(fields[0])?;
-        pos.parse_castling(fields[2])?;
-        pos.parse_en_passant(fields[3])?;
+        let stm = ok_or!(Color::try_from(fields[1]).ok(), "'w' or 'b'", fields[1]);
+        let ply = ok_or!(fields[5].parse().ok(), "positive integer", fields[5]);
 
-        pos.stm = ok_or!(Color::try_from(fields[1]).ok(), "'w' or 'b'", fields[1]);
-        pos.ply = ok_or!(fields[5].parse().ok(), "positive integer", fields[5]);
-        pos.restore.rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
+        board.parse_board(fields[0])?;
+        board.parse_castling(fields[2])?;
+        board.parse_en_passant(fields[3])?;
 
-        pos.threat.set_blockers(Color::White, &pos.layout);
-        pos.threat.set_blockers(Color::Black, &pos.layout);
+        board.state.rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
 
-        pos.threat.set_checkers(pos.stm, &pos.layout);
+        board.threat.set_blockers(Color::White, &board.layout);
+        board.threat.set_blockers(Color::Black, &board.layout);
 
-        Ok(pos)
+        board.threat.set_checkers(stm, &board.layout);
+
+        Ok((board, stm, ply))
     }
 
     fn parse_board(&mut self, fen: &str) -> Result<(), FenParseError> {
@@ -85,10 +82,10 @@ impl Position {
 
         for c in fen.chars() {
             match c {
-                'K' => self.restore.castling.set_kingside(Color::White),
-                'Q' => self.restore.castling.set_queenside(Color::White),
-                'k' => self.restore.castling.set_kingside(Color::Black),
-                'q' => self.restore.castling.set_queenside(Color::Black),
+                'K' => self.state.castling.set_kingside(Color::White),
+                'Q' => self.state.castling.set_queenside(Color::White),
+                'k' => self.state.castling.set_kingside(Color::Black),
+                'q' => self.state.castling.set_queenside(Color::Black),
                 _ => return Err(format!("Expected 'KQkq' subset or '-', but found {}", c)),
             };
         }
@@ -106,7 +103,7 @@ impl Position {
         let file = ok_or!(File::new(mov[0] - b'a'), "valid move", fen);
         let rank = ok_or!(Rank::new(mov[1] - b'1'), "valid", fen);
 
-        self.restore.en_passant = Some(Square::from(file, rank));
+        self.state.en_passant = Some(Square::from(file, rank));
 
         Ok(())
     }

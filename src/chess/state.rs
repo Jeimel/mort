@@ -1,15 +1,14 @@
 use types::{Castling, PieceType, Square};
 
 #[derive(Clone)]
-pub struct RestoreInfo {
+pub struct GameState {
     pub rule50_ply: u16,
     pub castling: Castling,
     pub en_passant: Option<Square>,
     pub capture: Option<PieceType>,
 }
 
-// TODO: own method for update?
-impl RestoreInfo {
+impl GameState {
     pub const EMPTY: Self = Self {
         rule50_ply: 0,
         castling: Castling::EMPTY,

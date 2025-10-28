@@ -1,14 +1,14 @@
 use types::{Color, PieceType, SquareSet};
 
-use super::Position;
+use crate::chess::board::Board;
 
-impl Position {
+impl Board {
     pub fn draw(&self) -> bool {
-        self.restore.rule50_ply >= 100 || self.insufficient_material()
+        self.state.rule50_ply >= 100 || self.insufficient_material()
     }
 
     pub fn upcoming_repetition(&self) -> bool {
-        todo!()
+        false
     }
 
     fn insufficient_material(&self) -> bool {

@@ -22,7 +22,7 @@ macro_rules! gen_lookup {
     }};
 }
 
-/// Index precomputed diagonal attacks for pawns.
+/// Index precomputed diagonal attacks for pawns
 pub fn pawn(stm: Color, sq: Square) -> SquareSet {
     const ATTACKS: [[SquareSet; 64]; 2] = [
         gen_lookup!(|set| SquareSet(
@@ -36,7 +36,7 @@ pub fn pawn(stm: Color, sq: Square) -> SquareSet {
     ATTACKS[stm][sq]
 }
 
-/// Index precomputed attacks for knights.
+/// Index precomputed attacks for knights
 pub fn knight(sq: Square, _: SquareSet) -> SquareSet {
     const ATTACKS: [SquareSet; 64] = gen_lookup!(|set| {
         let l1 = (set >> 1) & !File::H.set().0;
@@ -67,7 +67,7 @@ pub fn queen(sq: Square, blockers: SquareSet) -> SquareSet {
     bishop(sq, blockers) | rook(sq, blockers)
 }
 
-/// Index precomputed attacks in all eight directions for the king.
+/// Index precomputed attacks in all eight directions for the king
 pub fn king(sq: Square, _: SquareSet) -> SquareSet {
     const ATTACKS: [SquareSet; 64] = gen_lookup!(|set| {
         let attacks = ((set << 1) & !File::A.set().0) | ((set >> 1) & !File::H.set().0);

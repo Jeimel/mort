@@ -1,4 +1,7 @@
 mod attacks;
+mod board;
 mod position;
+mod state;
 
-pub use position::{FenParseError, Position};
+pub use board::FenParseError;
+pub use position::Position;

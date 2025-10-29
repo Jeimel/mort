@@ -7,10 +7,6 @@ impl Board {
         self.state.rule50_ply >= 100 || self.insufficient_material()
     }
 
-    pub fn upcoming_repetition(&self) -> bool {
-        false
-    }
-
     fn insufficient_material(&self) -> bool {
         const LIGHT_SQUARES: SquareSet = SquareSet(0x55AA55AA55AA55AA);
         const DARK_SQUARES: SquareSet = SquareSet(0xAA55AA55AA55AA55);

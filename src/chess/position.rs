@@ -45,7 +45,7 @@ impl Position {
     }
 
     pub fn zobrist(&self) -> Key {
-        self.board.zobrist()
+        self.board.state.zobrist
     }
 
     pub fn generate<const QUIET: bool>(&self, moves: &mut MoveList) {
@@ -58,6 +58,7 @@ impl Position {
 
     pub fn make_move(&mut self, mov: Move) {
         self.history.push(self.board.state.clone());
+
         self.board.make_move(mov, self.stm);
 
         self.stm = !self.stm;
@@ -80,7 +81,17 @@ impl Position {
         self.board.draw()
     }
 
-    pub fn upcoming_repetition(&self) -> bool {
-        self.board.upcoming_repetition()
+    pub fn repetition(&self, current: Key) -> bool {
+        self.history
+            .iter()
+            .skip(3)
+            .rev()
+            // We have to consider all plys until the last irreversible move
+            .take(self.board.state.rule50_ply as usize + 1)
+            // In the previous turn, we are not the side to move
+            .skip(1)
+            // We only have to consider a position, where it is our turn
+            .step_by(2)
+            .any(|state| state.zobrist == current)
     }
 }

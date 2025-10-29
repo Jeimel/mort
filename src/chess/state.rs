@@ -1,6 +1,6 @@
 use types::{Castling, Color, PieceType, Square, SquareSet};
 
-use crate::chess::board::{BETWEEN, PieceLayout};
+use crate::chess::board::{BETWEEN, Key, PieceLayout};
 
 #[derive(Clone)]
 pub struct GameState {
@@ -12,6 +12,7 @@ pub struct GameState {
     pub blockers: SquareSet,
     /// Pieces, which threaten our king
     pub checkers: SquareSet,
+    pub zobrist: Key,
 }
 
 impl GameState {
@@ -22,6 +23,7 @@ impl GameState {
         capture: None,
         blockers: SquareSet::EMPTY,
         checkers: SquareSet::EMPTY,
+        zobrist: 0,
     };
 
     pub fn set_blockers(&mut self, color: Color, layout: &PieceLayout) {

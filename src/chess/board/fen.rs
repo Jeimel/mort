@@ -1,7 +1,10 @@
 use types::{Color, File, Piece, Rank, Square};
 
 use crate::{
-    chess::{board::Board, state::GameState},
+    chess::{
+        board::{Board, zobrist},
+        state::GameState,
+    },
     syntax_error,
 };
 
@@ -20,7 +23,6 @@ impl Board {
         let mut board = Self {
             layout: PieceLayout::EMPTY,
             state: GameState::EMPTY,
-            zobrist: 0,
         };
 
         let fields: Vec<&str> = fen.split_ascii_whitespace().collect();
@@ -30,6 +32,10 @@ impl Board {
 
         let stm = ok_or!(Color::try_from(fields[1]).ok(), "'w' or 'b'", fields[1]);
         let ply = ok_or!(fields[5].parse().ok(), "positive integer", fields[5]);
+
+        if stm == Color::Black {
+            board.state.zobrist ^= zobrist::SIDE;
+        }
 
         board.parse_board(fields[0])?;
         board.parse_castling(fields[2])?;
@@ -65,7 +71,7 @@ impl Board {
             let piece = Piece::try_from(c).map_err(|err| format!("{:?}", err))?;
             let sq = Square::from(file, rank);
 
-            self.toggle(sq, piece.color(), piece.typ());
+            self.toggle::<true>(sq, piece.color(), piece.typ());
             col += 1;
         }
 
@@ -87,6 +93,8 @@ impl Board {
             };
         }
 
+        self.state.zobrist ^= zobrist::CASTLING[self.state.castling];
+
         Ok(())
     }
 
@@ -101,6 +109,7 @@ impl Board {
         let rank = ok_or!(Rank::new(mov[1] - b'1'), "valid", fen);
 
         self.state.en_passant = Some(Square::from(file, rank));
+        self.state.zobrist ^= zobrist::EN_PASSANT[file];
 
         Ok(())
     }

@@ -1,20 +1,8 @@
 use types::const_for;
 
-use crate::{chess::board::Board, rng::XorShiftState};
+use crate::rng::XorShiftState;
 
 pub type Key = u64;
-
-impl Board {
-    pub fn zobrist(&self) -> Key {
-        let mut zobrist = self.zobrist;
-
-        if let Some(en_passant) = self.state.en_passant {
-            zobrist ^= EN_PASSANT[en_passant.file()];
-        }
-
-        zobrist ^ CASTLING[self.state.castling]
-    }
-}
 
 const VALUES: ([[[Key; 64]; 6]; 2], [Key; 8], [Key; 16], Key) = {
     let mut rng = XorShiftState::new(1070372);

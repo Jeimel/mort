@@ -19,7 +19,6 @@ use crate::chess::state::GameState;
 pub struct Board {
     pub layout: PieceLayout,
     pub state: GameState,
-    pub zobrist: Key,
 }
 
 impl Display for Board {
@@ -40,7 +39,7 @@ impl Display for Board {
 
         pos.push_str("  a   b   c   d   e   f   g   h");
 
-        write!(f, "{}\n\nKey: {:x}", pos, self.zobrist)
+        write!(f, "{}\n\nKey: {:x}", pos, self.state.zobrist)
     }
 }
 
@@ -61,8 +60,12 @@ impl Board {
 
         let piece = self.layout.piece_at(start);
 
-        // We always flip the value for the side to move
-        self.zobrist ^= zobrist::SIDE;
+        self.state.zobrist ^= zobrist::SIDE;
+        self.state.zobrist ^= zobrist::CASTLING[self.state.castling];
+
+        if let Some(target) = self.state.en_passant {
+            self.state.zobrist ^= zobrist::EN_PASSANT[target.file()];
+        }
 
         self.state.castling.remove(start, target);
         self.state.en_passant = None;
@@ -74,33 +77,37 @@ impl Board {
             self.state.rule50_ply = 0;
         }
 
+        self.state.zobrist ^= zobrist::CASTLING[self.state.castling];
+
         match flag {
             // Store en passant target square for next turn
             MoveFlag::DOUBLE_PAWN => {
-                self.state.en_passant =
-                    Some(Square::from(start.file(), Self::EN_PASSANT_TARGET[color]))
+                let file = start.file();
+
+                self.state.en_passant = Some(Square::from(file, Self::EN_PASSANT_TARGET[color]));
+                self.state.zobrist ^= zobrist::EN_PASSANT[file];
             }
             // Place rook on kinsgide castle target, which is either F1 or F8
             MoveFlag::KING_CASTLE => {
-                self.toggle(Self::KING_CASTLE_START[color], color, PieceType::Rook);
-                self.toggle(Self::KING_CASTLE_TARGET[color], color, PieceType::Rook);
+                self.toggle::<true>(Self::KING_CASTLE_START[color], color, PieceType::Rook);
+                self.toggle::<true>(Self::KING_CASTLE_TARGET[color], color, PieceType::Rook);
             }
             // Place rook on queenside castle target, which is either D1 or D8
             MoveFlag::QUEEN_CASTLE => {
-                self.toggle(Self::QUEEN_CASTLE_START[color], color, PieceType::Rook);
-                self.toggle(Self::QUEEN_CASTLE_TARGET[color], color, PieceType::Rook);
+                self.toggle::<true>(Self::QUEEN_CASTLE_START[color], color, PieceType::Rook);
+                self.toggle::<true>(Self::QUEEN_CASTLE_TARGET[color], color, PieceType::Rook);
             }
             // Remove their piece from the board, and reset the fifty move counter
             MoveFlag::CAPTURE => {
                 let capture = self.layout.piece_at(target);
 
-                self.toggle(target, !color, capture);
+                self.toggle::<true>(target, !color, capture);
 
                 self.state.rule50_ply = 0;
                 self.state.capture = Some(capture);
             }
             // Remove their captured pawn
-            MoveFlag::EN_PASSANT => self.toggle(
+            MoveFlag::EN_PASSANT => self.toggle::<true>(
                 Square::from(target.file(), Self::EN_PASSANT_CAPTURE[!color]),
                 !color,
                 PieceType::Pawn,
@@ -108,7 +115,7 @@ impl Board {
             _ => {}
         };
 
-        self.toggle(start, color, piece);
+        self.toggle::<true>(start, color, piece);
 
         // Determine which piece must be placed on the target square
         let piece = match flag.promotion_piece() {
@@ -122,13 +129,13 @@ impl Board {
         if self.layout.all().is_set(target) {
             let capture = self.layout.piece_at(target);
 
-            self.toggle(target, !color, capture);
+            self.toggle::<true>(target, !color, capture);
 
             self.state.capture = Some(capture)
         }
 
         // Add our new piece back on the board
-        self.toggle(target, color, piece);
+        self.toggle::<true>(target, color, piece);
 
         // We have to update for the next side to move only
         self.state.set_blockers(!color, &self.layout);
@@ -142,20 +149,18 @@ impl Board {
 
         let piece = self.layout.piece_at(target);
 
-        self.zobrist ^= zobrist::SIDE;
-
-        self.toggle(target, color, piece);
+        self.toggle::<false>(target, color, piece);
 
         match flag {
             MoveFlag::KING_CASTLE => {
-                self.toggle(Self::KING_CASTLE_START[color], color, PieceType::Rook);
-                self.toggle(Self::KING_CASTLE_TARGET[color], color, PieceType::Rook);
+                self.toggle::<false>(Self::KING_CASTLE_START[color], color, PieceType::Rook);
+                self.toggle::<false>(Self::KING_CASTLE_TARGET[color], color, PieceType::Rook);
             }
             MoveFlag::QUEEN_CASTLE => {
-                self.toggle(Self::QUEEN_CASTLE_START[color], color, PieceType::Rook);
-                self.toggle(Self::QUEEN_CASTLE_TARGET[color], color, PieceType::Rook);
+                self.toggle::<false>(Self::QUEEN_CASTLE_START[color], color, PieceType::Rook);
+                self.toggle::<false>(Self::QUEEN_CASTLE_TARGET[color], color, PieceType::Rook);
             }
-            MoveFlag::EN_PASSANT => self.toggle(
+            MoveFlag::EN_PASSANT => self.toggle::<false>(
                 Square::from(target.file(), Self::EN_PASSANT_CAPTURE[!color]),
                 !color,
                 PieceType::Pawn,
@@ -169,17 +174,19 @@ impl Board {
         };
 
         if let Some(capture) = self.state.capture {
-            self.toggle(target, !color, capture);
+            self.toggle::<false>(target, !color, capture);
         }
 
-        self.toggle(start, color, piece);
+        self.toggle::<false>(start, color, piece);
 
         self.state = state;
     }
 
-    fn toggle(&mut self, sq: Square, color: Color, piece: PieceType) {
+    fn toggle<const ZOBRIST: bool>(&mut self, sq: Square, color: Color, piece: PieceType) {
         self.layout.toggle(sq, color, piece);
 
-        self.zobrist ^= zobrist::PIECE[color][piece][sq];
+        if ZOBRIST {
+            self.state.zobrist ^= zobrist::PIECE[color][piece][sq];
+        }
     }
 }

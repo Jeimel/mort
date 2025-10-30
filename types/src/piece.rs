@@ -116,6 +116,19 @@ impl<T> IndexMut<PieceType> for [T; 6] {
     }
 }
 
+impl From<PieceType> for char {
+    fn from(value: PieceType) -> Self {
+        match value {
+            PieceType::Pawn => 'p',
+            PieceType::Knight => 'n',
+            PieceType::Bishop => 'b',
+            PieceType::Rook => 'r',
+            PieceType::Queen => 'q',
+            PieceType::King => 'k',
+        }
+    }
+}
+
 impl TryFrom<char> for PieceType {
     type Error = TypeParseError;
 
@@ -128,19 +141,6 @@ impl TryFrom<char> for PieceType {
             'q' => Ok(PieceType::Queen),
             'k' => Ok(PieceType::King),
             _ => Err(TypeParseError::InvalidPieceSymbol(value)),
-        }
-    }
-}
-
-impl From<PieceType> for char {
-    fn from(value: PieceType) -> Self {
-        match value {
-            PieceType::Pawn => 'p',
-            PieceType::Knight => 'n',
-            PieceType::Bishop => 'b',
-            PieceType::Rook => 'r',
-            PieceType::Queen => 'q',
-            PieceType::King => 'k',
         }
     }
 }

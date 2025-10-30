@@ -67,3 +67,12 @@ impl From<bool> for Color {
         }
     }
 }
+
+impl From<Color> for char {
+    fn from(value: Color) -> Self {
+        match value {
+            Color::White => 'w',
+            Color::Black => 'b',
+        }
+    }
+}

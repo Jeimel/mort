@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::SquareSet;
 
 #[repr(u8)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Rank {
     One,
     Two,
@@ -53,5 +53,9 @@ impl Rank {
 
     pub const fn set(self) -> SquareSet {
         SquareSet(0xffu64 << (self as u8 * 8))
+    }
+
+    pub fn iter() -> impl DoubleEndedIterator<Item = Self> {
+        (0..8).map(|index| Self::new(index).unwrap())
     }
 }

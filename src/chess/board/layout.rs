@@ -1,4 +1,6 @@
-use types::{Color, Piece, PieceType, Square, SquareSet};
+use std::fmt::Display;
+
+use types::{Color, File, Piece, PieceType, Rank, Square, SquareSet};
 
 use crate::chess::attacks;
 
@@ -12,6 +14,41 @@ pub struct PieceLayout {
     pub pawns: SquareSet,
     // Square-centric board representation
     pub mailbox: [Option<Piece>; 64],
+}
+
+impl Display for PieceLayout {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for rank in Rank::iter().rev() {
+            let mut empty = 0;
+
+            for file in File::iter() {
+                let piece = self.mailbox[Square::from(file, rank)];
+
+                if piece.is_none() {
+                    empty += 1;
+
+                    continue;
+                }
+
+                if empty != 0 {
+                    write!(f, "{}", empty)?;
+                    empty = 0;
+                }
+
+                write!(f, "{}", char::from(piece.unwrap()))?;
+            }
+
+            if empty != 0 {
+                write!(f, "{}", empty)?;
+            }
+
+            if rank != Rank::One {
+                write!(f, "/")?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl PieceLayout {

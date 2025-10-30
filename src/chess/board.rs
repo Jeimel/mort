@@ -25,21 +25,21 @@ impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         const DELIMITER: &str = concat!("+---+---+---+---+---+---+---+---+", '\n');
 
-        let mut pos = String::from(DELIMITER);
+        write!(f, "{}", DELIMITER)?;
 
         for row in (0..8).rev() {
             let start = row * 8;
 
-            for c in &self.layout.mailbox[start..(start + 8)] {
-                pos.push_str(&format!("| {} ", c.map(|c| char::from(c)).unwrap_or(' ')));
+            for piece in &self.layout.mailbox[start..(start + 8)] {
+                write!(f, "| {}", piece.map(|c| char::from(c)).unwrap_or(' '))?;
             }
 
-            pos.push_str(&format!("| {}\n{}", row + 1, DELIMITER));
+            write!(f, "| {}\n{}", row + 1, DELIMITER)?;
         }
 
-        pos.push_str("  a   b   c   d   e   f   g   h");
+        write!(f, "  a   b   c   d   e   f   g   h")?;
 
-        write!(f, "{}\n\nKey: {:x}", pos, self.state.zobrist)
+        write!(f, "\n\nKey: {:x}", self.state.zobrist)
     }
 }
 

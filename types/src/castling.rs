@@ -1,4 +1,7 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    fmt::Display,
+    ops::{Index, IndexMut},
+};
 
 use crate::{Color, Square, SquareSet};
 
@@ -9,6 +12,30 @@ use crate::{Color, Square, SquareSet};
 #[repr(transparent)]
 #[derive(Clone, Copy)]
 pub struct Castling(u8);
+
+impl Display for Castling {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut castling = String::new();
+
+        if self.kingside(Color::White) {
+            castling.push('K');
+        }
+
+        if self.queenside(Color::White) {
+            castling.push('Q');
+        }
+
+        if self.kingside(Color::Black) {
+            castling.push('k');
+        }
+
+        if self.queenside(Color::Black) {
+            castling.push('q');
+        }
+
+        write!(f, "{}", if castling.is_empty() { "-" } else { &castling })
+    }
+}
 
 impl Castling {
     pub const EMPTY: Self = Self(0);

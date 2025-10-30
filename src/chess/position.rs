@@ -20,7 +20,7 @@ pub struct Position {
 
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.board)
+        write!(f, "{}\nFen: {}", self.board, self.fen())
     }
 }
 
@@ -31,9 +31,13 @@ impl Position {
         Ok(Position {
             board,
             stm,
-            ply,
+            ply: (ply - 1) * 2 + if stm == Color::White { 0 } else { 1 },
             history: Vec::new(),
         })
+    }
+
+    pub fn fen(&self) -> String {
+        self.board.fen(self.stm, (self.ply + 2) / 2)
     }
 
     pub fn stm(&self) -> Color {
@@ -81,17 +85,16 @@ impl Position {
         self.board.draw()
     }
 
-    pub fn repetition(&self, current: Key) -> bool {
+    pub fn repetition(&self) -> bool {
         self.history
             .iter()
-            .skip(3)
             .rev()
             // We have to consider all plys until the last irreversible move
             .take(self.board.state.rule50_ply as usize + 1)
-            // In the previous turn, we are not the side to move
-            .skip(1)
+            // A repetition can only happen two fullmoves ago
+            .skip(3)
             // We only have to consider a position, where it is our turn
             .step_by(2)
-            .any(|state| state.zobrist == current)
+            .any(|state| state.zobrist == self.board.state.zobrist)
     }
 }

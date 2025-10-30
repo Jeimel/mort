@@ -6,6 +6,7 @@ use std::{
 use crate::SquareSet;
 
 #[repr(u8)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum File {
     A,
     B,
@@ -55,6 +56,10 @@ impl File {
 
     pub const fn set(self) -> SquareSet {
         SquareSet(0x101010101010101u64 << (self as u8))
+    }
+
+    pub fn iter() -> impl DoubleEndedIterator<Item = Self> {
+        (0..8).map(|index| Self::new(index).unwrap())
     }
 }
 

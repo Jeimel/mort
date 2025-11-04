@@ -1,7 +1,8 @@
 mod attacks;
 mod board;
+mod movelist;
 mod position;
-mod state;
 
-pub use board::FenParseError;
+pub use board::{FenParseError, GenerationType, PieceLayout};
+pub use movelist::{MoveList, MoveListEntry};
 pub use position::Position;

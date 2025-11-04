@@ -1,0 +1,88 @@
+use types::{Move, MoveFlag, PieceType};
+
+use crate::{
+    Position,
+    chess::{GenerationType, MoveList, MoveListEntry, PieceLayout},
+};
+
+// We sort our moves in stages to limit the amount of move generation
+#[derive(PartialEq)]
+enum Stage {
+    GenerateCaptures,
+    YieldCaptures,
+    GenerateQuiets,
+    YieldQuiets,
+    Done,
+}
+
+pub struct MovePicker {
+    moves: MoveList,
+    stage: Stage,
+    index: usize,
+}
+
+impl MovePicker {
+    pub fn new() -> Self {
+        Self {
+            moves: MoveList::new(),
+            stage: Stage::GenerateCaptures,
+            index: 0,
+        }
+    }
+
+    pub fn next<const QUIET: bool>(&mut self, pos: &Position) -> Option<Move> {
+        if self.stage == Stage::GenerateCaptures {
+            self.stage = Stage::YieldCaptures;
+
+            pos.generate::<{ GenerationType::Capture }>(&mut self.moves);
+            MovePicker::score_captures(pos.layout(), &mut self.moves[self.index..]);
+            self.moves[self.index..].sort_unstable_by(|a, b| b.score.cmp(&a.score));
+        }
+
+        if self.stage == Stage::YieldCaptures {
+            if let Some(entry) = self.moves.get(self.index) {
+                self.index += 1;
+                return Some(entry.mov);
+            }
+
+            self.stage = Stage::GenerateQuiets;
+        }
+
+        if QUIET {
+            self.stage = Stage::Done;
+        }
+
+        if self.stage == Stage::GenerateQuiets {
+            self.stage = Stage::YieldQuiets;
+
+            pos.generate::<{ GenerationType::Quiet }>(&mut self.moves);
+        }
+
+        if self.stage == Stage::YieldQuiets {
+            if let Some(entry) = self.moves.get(self.index) {
+                self.index += 1;
+                return Some(entry.mov);
+            }
+
+            self.stage = Stage::Done;
+        }
+
+        None
+    }
+
+    fn score_captures(layout: &PieceLayout, moves: &mut [MoveListEntry]) {
+        const VALUE: [u16; 6] = [1, 2, 3, 4, 5, 6];
+
+        for entry in moves {
+            let (start, target, flag) = (entry.mov.start(), entry.mov.target(), entry.mov.flag());
+
+            let piece = layout.piece_at(start);
+            let capture = match flag {
+                MoveFlag::EN_PASSANT => PieceType::Pawn,
+                _ => layout.piece_at(target),
+            };
+
+            entry.score = 100 * VALUE[capture] - VALUE[piece];
+        }
+    }
+}

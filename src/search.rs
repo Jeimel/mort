@@ -1,12 +1,13 @@
 mod limit;
+mod picker;
 
 use crate::{
     evaluation::{DRAW, INF, evaluate},
+    search::picker::MovePicker,
     thread::ThreadData,
 };
 
 pub use limit::SearchLimit;
-use types::MoveList;
 
 pub fn go(thread: &mut ThreadData) {
     iterative_deepening(thread, thread.limits.depth);
@@ -21,10 +22,8 @@ fn iterative_deepening(thread: &mut ThreadData, max_depth: u16) {
         }
 
         println!(
-            "info depth {} score cp {} pv {}",
-            depth,
-            score,
-            thread.best.unwrap()
+            "info score cp {} depth {} nodes {}",
+            score, depth, thread.nodes,
         );
 
         thread.score = score;
@@ -53,10 +52,9 @@ fn alpha_beta(thread: &mut ThreadData, mut alpha: i32, beta: i32, depth: u16, pl
     let mut best_move = None;
     let mut legal = 0;
 
-    let mut moves = MoveList::with_capacity(40);
-    thread.pos.generate::<true>(&mut moves);
+    let mut picker = MovePicker::new();
 
-    for mov in moves {
+    while let Some(mov) = picker.next::<true>(&thread.pos) {
         if !thread.pos.legal(mov) {
             continue;
         }

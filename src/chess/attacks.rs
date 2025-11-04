@@ -37,7 +37,7 @@ pub fn pawn(stm: Color, sq: Square) -> SquareSet {
 }
 
 /// Index precomputed attacks for knights
-pub fn knight(sq: Square, _: SquareSet) -> SquareSet {
+pub fn knight(sq: Square) -> SquareSet {
     const ATTACKS: [SquareSet; 64] = gen_lookup!(|set| {
         let l1 = (set >> 1) & !File::H.set().0;
         let l2 = (set >> 2) & !File::H.set().0 & !File::G.set().0;
@@ -63,12 +63,8 @@ pub fn rook(sq: Square, blockers: SquareSet) -> SquareSet {
     SLIDING_MOVES[rook_magic_index(sq, blockers)]
 }
 
-pub fn queen(sq: Square, blockers: SquareSet) -> SquareSet {
-    bishop(sq, blockers) | rook(sq, blockers)
-}
-
 /// Index precomputed attacks in all eight directions for the king
-pub fn king(sq: Square, _: SquareSet) -> SquareSet {
+pub fn king(sq: Square) -> SquareSet {
     const ATTACKS: [SquareSet; 64] = gen_lookup!(|set| {
         let attacks = ((set << 1) & !File::A.set().0) | ((set >> 1) & !File::H.set().0);
         let king = set | attacks;

@@ -6,14 +6,14 @@ mod zobrist;
 
 pub use fen::FenParseError;
 pub use layout::PieceLayout;
-pub use movegen::BETWEEN;
+pub use movegen::{BETWEEN, GenerationType};
 pub use zobrist::Key;
 
 use std::fmt::Display;
 
 use types::{Color, Move, MoveFlag, PieceType, Rank, Square};
 
-use crate::chess::state::GameState;
+use crate::chess::position::GameState;
 
 #[derive(Clone)]
 pub struct Board {
@@ -31,7 +31,7 @@ impl Display for Board {
             let start = row * 8;
 
             for piece in &self.layout.mailbox[start..(start + 8)] {
-                write!(f, "| {}", piece.map(|c| char::from(c)).unwrap_or(' '))?;
+                write!(f, "| {} ", piece.map(|c| char::from(c)).unwrap_or(' '))?;
             }
 
             write!(f, "| {}\n{}", row + 1, DELIMITER)?;

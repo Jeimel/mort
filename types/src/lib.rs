@@ -1,3 +1,5 @@
+#![feature(adt_const_params)]
+
 mod castling;
 mod chessmove;
 mod color;
@@ -18,8 +20,6 @@ pub use piece::{Piece, PieceType};
 pub use rank::Rank;
 pub use square::Square;
 pub use squareset::SquareSet;
-
-pub type MoveList = Vec<Move>;
 
 #[macro_export]
 macro_rules! const_for {

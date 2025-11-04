@@ -117,10 +117,10 @@ impl PieceLayout {
 
     pub(crate) fn attackers(&self, sq: Square, color: Color, occ: SquareSet) -> SquareSet {
         ((self.pawns & attacks::pawn(color, sq))
-            | (self.knights() & attacks::knight(sq, SquareSet::EMPTY))
+            | (self.knights() & attacks::knight(sq))
             | (self.bishops & attacks::bishop(sq, occ))
             | (self.rooks & attacks::rook(sq, occ))
-            | (self.kings[!color].set() & attacks::king(sq, SquareSet::EMPTY)))
+            | (self.kings[!color].set() & attacks::king(sq)))
             & self.color(!color)
     }
 

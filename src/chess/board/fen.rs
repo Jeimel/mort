@@ -3,7 +3,7 @@ use types::{Color, File, Piece, Rank, Square};
 use crate::{
     chess::{
         board::{Board, zobrist},
-        state::GameState,
+        position::GameState,
     },
     syntax_error,
 };
@@ -56,9 +56,9 @@ impl Board {
             char::from(stm),
             self.state.castling,
             if let Some(target) = self.state.en_passant {
-                &format!("{}", target)
+                format!("{}", target)
             } else {
-                "-"
+                "-".to_string()
             },
             self.state.rule50_ply,
             fullmove,
@@ -145,7 +145,7 @@ mod tests {
     ];
 
     #[test]
-    fn fen() {
+    fn parse() {
         for fen in FEN {
             let pos = Position::from_fen(fen).unwrap();
 

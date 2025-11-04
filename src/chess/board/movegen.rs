@@ -1,3 +1,5 @@
+use std::marker::ConstParamTy;
+
 use types::{Color, Move, MoveFlag, MoveList, PieceType, Rank, Square, SquareSet};
 
 use crate::chess::{attacks, board::Board};
@@ -10,6 +12,13 @@ macro_rules! push_loop {
             $moves.push(Move::new($start, target, $flag));
         }
     };
+}
+
+#[derive(ConstParamTy, PartialEq, Eq)]
+pub enum GenerationType {
+    Quiet,
+    Capture,
+    All,
 }
 
 impl Board {
@@ -60,18 +69,18 @@ impl Board {
     ///
     /// `QUIET` determines whether to include quiet moves or not
     #[inline(always)]
-    pub fn generate<const QUIET: bool>(&self, moves: &mut MoveList, color: Color) {
+    pub fn generate<const TYPE: GenerationType>(&self, moves: &mut MoveList, color: Color) {
         let checkers = self.state.checkers;
 
         // Is our king not in check?
         match checkers.is_empty() {
-            true => self.generate_all::<false, QUIET>(moves, color, checkers),
-            false => self.generate_all::<true, QUIET>(moves, color, checkers),
+            true => self.generate_all::<false, TYPE>(moves, color, checkers),
+            false => self.generate_all::<true, TYPE>(moves, color, checkers),
         }
     }
 
     #[inline(always)]
-    fn generate_all<const EVADING: bool, const QUIET: bool>(
+    fn generate_all<const EVADING: bool, const TYPE: GenerationType>(
         &self,
         moves: &mut MoveList,
         color: Color,
@@ -88,40 +97,12 @@ impl Board {
                 false => !self.layout.color(color),
             };
 
-            self.generate_pawns::<QUIET>(moves, color, target, occ);
+            self.generate_pawns::<TYPE>(moves, color, target, occ);
 
-            self.generate_attacks::<QUIET>(
-                moves,
-                color,
-                PieceType::Knight,
-                attacks::knight,
-                target,
-                occ,
-            );
-            self.generate_attacks::<QUIET>(
-                moves,
-                color,
-                PieceType::Bishop,
-                attacks::bishop,
-                target,
-                occ,
-            );
-            self.generate_attacks::<QUIET>(
-                moves,
-                color,
-                PieceType::Rook,
-                attacks::rook,
-                target,
-                occ,
-            );
-            self.generate_attacks::<QUIET>(
-                moves,
-                color,
-                PieceType::Queen,
-                attacks::queen,
-                target,
-                occ,
-            );
+            self.generate_attacks::<TYPE, { PieceType::Knight }>(moves, color, target, occ);
+            self.generate_attacks::<TYPE, { PieceType::Bishop }>(moves, color, target, occ);
+            self.generate_attacks::<TYPE, { PieceType::Rook }>(moves, color, target, occ);
+            self.generate_attacks::<TYPE, { PieceType::Queen }>(moves, color, target, occ);
         }
 
         // Is `target` potentially representing the line between our king and the threatening piece?
@@ -130,16 +111,19 @@ impl Board {
             target = !self.layout.color(color);
         }
 
-        self.generate_attacks::<QUIET>(moves, color, PieceType::King, attacks::king, target, occ);
+        self.generate_attacks::<TYPE, { PieceType::King }>(moves, color, target, occ);
 
         // We can't castle, if either our king is in check or we already did it
-        if QUIET && !EVADING && !self.state.castling.is_empty(color) {
+        if matches!(TYPE, GenerationType::Quiet | GenerationType::All)
+            && !EVADING
+            && !self.state.castling.is_empty(color)
+        {
             self.generate_castling(moves, color, occ);
         }
     }
 
     #[inline(always)]
-    fn generate_pawns<const QUIET: bool>(
+    fn generate_pawns<const TYPE: GenerationType>(
         &self,
         moves: &mut MoveList,
         color: Color,
@@ -163,8 +147,10 @@ impl Board {
 
             // We don't consider captures and promotions here, so we remove
             // all captures on the respective last rank
-            let captures = captures - PROMOTION_RANK[color];
-            push_loop!(moves, captures & target, start, MoveFlag::CAPTURE);
+            if matches!(TYPE, GenerationType::All | GenerationType::Capture) {
+                let captures = captures - PROMOTION_RANK[color];
+                push_loop!(moves, captures & target, start, MoveFlag::CAPTURE);
+            }
 
             // Now, we consider promotions. There exist two cases:
             // 1. Quiet promotion: All pawns on the penulimate rank,
@@ -187,19 +173,25 @@ impl Board {
             ] {
                 let flag = MoveFlag::promotion(piece);
 
-                push_loop!(moves, promo & target, start, flag);
-                push_loop!(moves, promo_captures & target, start, flag);
+                if matches!(TYPE, GenerationType::All | GenerationType::Quiet) {
+                    push_loop!(moves, promo & target, start, flag);
+                }
+
+                if matches!(TYPE, GenerationType::All | GenerationType::Capture) {
+                    push_loop!(moves, promo_captures & target, start, flag);
+                }
             }
 
             // There exists an en passant capture if we have a valid target square,
             // which our pawn can attack
-            if let Some(target) = self.state.en_passant
+            if matches!(TYPE, GenerationType::All | GenerationType::Capture)
+                && let Some(target) = self.state.en_passant
                 && !(target.set() & attacks::pawn(color, start)).is_empty()
             {
                 moves.push(Move::new(start, target, MoveFlag::EN_PASSANT));
             }
 
-            if !QUIET {
+            if TYPE == GenerationType::Capture {
                 continue;
             }
 
@@ -223,31 +215,36 @@ impl Board {
     }
 
     #[inline(always)]
-    fn generate_attacks<const QUIET: bool>(
+    fn generate_attacks<const TYPE: GenerationType, const PIECE: PieceType>(
         &self,
         moves: &mut MoveList,
         color: Color,
-        piece: PieceType,
-        attacks: fn(Square, SquareSet) -> SquareSet,
         target: SquareSet,
         occ: SquareSet,
     ) {
-        let pieces = self.layout.get(piece) & self.layout.color(color);
+        let pieces = self.layout.get(PIECE) & self.layout.color(color);
 
         for start in pieces.iter() {
-            let attacks = attacks(start, occ);
+            let attacks = match PIECE {
+                PieceType::Knight => attacks::knight(start),
+                PieceType::Bishop => attacks::bishop(start, occ),
+                PieceType::Rook => attacks::rook(start, occ),
+                PieceType::Queen => attacks::rook(start, occ) | attacks::bishop(start, occ),
+                PieceType::King => attacks::king(start),
+                _ => unreachable!(),
+            };
 
             // The intersection between our attacks and their pieces yields all captures
-            let captures = attacks & self.layout.color(!color);
-            push_loop!(moves, captures & target, start, MoveFlag::CAPTURE);
-
-            if !QUIET {
-                continue;
+            if matches!(TYPE, GenerationType::All | GenerationType::Capture) {
+                let captures = attacks & self.layout.color(!color);
+                push_loop!(moves, captures & target, start, MoveFlag::CAPTURE);
             }
 
             // The difference between our attacks and all blockers yields all quiet moves
-            let quiets = attacks - occ;
-            push_loop!(moves, quiets & target, start, MoveFlag::QUIET);
+            if matches!(TYPE, GenerationType::All | GenerationType::Quiet) {
+                let quiets = attacks - occ;
+                push_loop!(moves, quiets & target, start, MoveFlag::QUIET);
+            }
         }
     }
 

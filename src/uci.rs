@@ -9,6 +9,7 @@ use types::{Color, MoveList};
 
 use crate::{
     Position,
+    chess::GenerationType,
     error::Error,
     evaluation::evaluate,
     search::{self, SearchLimit},
@@ -108,7 +109,7 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
     // We already skipped the "moves" token earlier, so we can directly play the moves if any
     while let Some(str) = commands.next() {
         let mut moves = MoveList::new();
-        pos.generate::<true>(&mut moves);
+        pos.generate::<{ GenerationType::All }>(&mut moves);
 
         match moves.iter().find(|mov| &format!("{}", mov) == *str) {
             Some(mov) => pos.make_move(*mov),

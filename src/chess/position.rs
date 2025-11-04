@@ -1,12 +1,14 @@
+mod repetition;
+mod state;
+
+pub use state::GameState;
+
 use std::fmt::Display;
 
 use types::{Color, Move, MoveList};
 
 use crate::{
-    chess::{
-        board::{Board, Key, PieceLayout},
-        state::GameState,
-    },
+    chess::board::{Board, GenerationType, Key, PieceLayout},
     error::Error,
 };
 
@@ -52,8 +54,8 @@ impl Position {
         self.board.state.zobrist
     }
 
-    pub fn generate<const QUIET: bool>(&self, moves: &mut MoveList) {
-        self.board.generate::<QUIET>(moves, self.stm);
+    pub fn generate<const TYPE: GenerationType>(&self, moves: &mut MoveList) {
+        self.board.generate::<TYPE>(moves, self.stm);
     }
 
     pub fn legal(&self, mov: Move) -> bool {
@@ -83,18 +85,5 @@ impl Position {
 
     pub fn draw(&self) -> bool {
         self.board.draw()
-    }
-
-    pub fn repetition(&self) -> bool {
-        self.history
-            .iter()
-            .rev()
-            // We have to consider all plys until the last irreversible move
-            .take(self.board.state.rule50_ply as usize + 1)
-            // A repetition can only happen two fullmoves ago
-            .skip(3)
-            // We only have to consider a position, where it is our turn
-            .step_by(2)
-            .any(|state| state.zobrist == self.board.state.zobrist)
     }
 }

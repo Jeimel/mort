@@ -1,3 +1,5 @@
+#![feature(adt_const_params)]
+
 mod chess;
 mod error;
 mod evaluation;

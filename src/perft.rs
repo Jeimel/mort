@@ -1,6 +1,6 @@
 use types::MoveList;
 
-use crate::Position;
+use crate::{Position, chess::GenerationType};
 
 pub fn perft<const ROOT: bool>(pos: &mut Position, depth: u16) -> usize {
     if depth == 0 {
@@ -8,7 +8,7 @@ pub fn perft<const ROOT: bool>(pos: &mut Position, depth: u16) -> usize {
     }
 
     let (mut moves, mut nodes) = (MoveList::new(), 0);
-    pos.generate::<true>(&mut moves);
+    pos.generate::<{ GenerationType::All }>(&mut moves);
 
     for mov in moves {
         if !pos.legal(mov) {

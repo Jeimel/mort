@@ -1,4 +1,7 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    marker::ConstParamTy,
+    ops::{Index, IndexMut},
+};
 
 use crate::{Color, TypeParseError};
 
@@ -77,7 +80,7 @@ impl TryFrom<char> for Piece {
 }
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(ConstParamTy, Clone, Copy, Eq, PartialEq)]
 pub enum PieceType {
     Pawn,
     Knight,

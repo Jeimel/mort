@@ -21,8 +21,6 @@ pub use rank::Rank;
 pub use square::Square;
 pub use squareset::SquareSet;
 
-pub type MoveList = Vec<Move>;
-
 #[macro_export]
 macro_rules! const_for {
     ($init:stmt; $condition:expr; $next: expr; $body:block) => {

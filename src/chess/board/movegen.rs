@@ -1,8 +1,8 @@
 use std::marker::ConstParamTy;
 
-use types::{Color, Move, MoveFlag, MoveList, PieceType, Rank, Square, SquareSet};
+use types::{Color, Move, MoveFlag, PieceType, Rank, Square, SquareSet};
 
-use crate::chess::{attacks, board::Board};
+use crate::chess::{MoveList, attacks, board::Board};
 
 include!(concat!(env!("OUT_DIR"), "/squareset_tables.rs"));
 

@@ -4,7 +4,7 @@ use types::Move;
 
 pub struct MoveListEntry {
     pub mov: Move,
-    pub score: i16,
+    pub score: u16,
 }
 
 pub struct MoveList {

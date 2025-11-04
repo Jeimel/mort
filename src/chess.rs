@@ -3,6 +3,6 @@ mod board;
 mod movelist;
 mod position;
 
-pub use board::{FenParseError, GenerationType};
+pub use board::{FenParseError, GenerationType, PieceLayout};
 pub use movelist::{MoveList, MoveListEntry};
 pub use position::Position;

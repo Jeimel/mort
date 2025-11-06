@@ -19,6 +19,7 @@ pub struct MovePicker {
     moves: MoveList,
     stage: Stage,
     index: usize,
+    quiet: bool,
 }
 
 impl MovePicker {
@@ -27,10 +28,11 @@ impl MovePicker {
             moves: MoveList::new(),
             stage: Stage::GenerateCaptures,
             index: 0,
+            quiet: true,
         }
     }
 
-    pub fn next<const QUIET: bool>(&mut self, pos: &Position) -> Option<Move> {
+    pub fn next(&mut self, pos: &Position) -> Option<Move> {
         if self.stage == Stage::GenerateCaptures {
             self.stage = Stage::YieldCaptures;
 
@@ -48,7 +50,7 @@ impl MovePicker {
             self.stage = Stage::GenerateQuiets;
         }
 
-        if QUIET {
+        if !self.quiet {
             self.stage = Stage::Done;
         }
 
@@ -70,6 +72,10 @@ impl MovePicker {
         None
     }
 
+    pub fn set_quiet(&mut self, quiet: bool) {
+        self.quiet = quiet;
+    }
+
     fn score_captures(layout: &PieceLayout, moves: &mut [MoveListEntry]) {
         const VALUE: [u16; 6] = [1, 2, 3, 4, 5, 6];
 
@@ -78,8 +84,9 @@ impl MovePicker {
 
             let piece = layout.piece_at(start);
             let capture = match flag {
+                MoveFlag::CAPTURE => layout.piece_at(target),
                 MoveFlag::EN_PASSANT => PieceType::Pawn,
-                _ => layout.piece_at(target),
+                _ => PieceType::Queen,
             };
 
             entry.score = 100 * VALUE[capture] - VALUE[piece];

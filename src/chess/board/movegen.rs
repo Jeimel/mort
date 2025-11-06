@@ -114,7 +114,7 @@ impl Board {
         self.generate_attacks::<TYPE, { PieceType::King }>(moves, color, target, occ);
 
         // We can't castle, if either our king is in check or we already did it
-        if matches!(TYPE, GenerationType::Quiet | GenerationType::All)
+        if matches!(TYPE, GenerationType::All | GenerationType::Quiet)
             && !EVADING
             && !self.state.castling.is_empty(color)
         {
@@ -161,24 +161,21 @@ impl Board {
             // The moves for the first case are generated via single rank shift
             let promo = (set & PRE_PROMOTION_RANK[color]).rotate(ROTATION[color]) - occ;
 
-            // We can promote our pawn to a knight, bishop, rook, or queen. Therefore, we have to
-            // generate each possible piece and target square combination
-            //
-            // NOTE: Currently all promotions are considered non-quiet
-            for piece in [
-                PieceType::Knight,
-                PieceType::Bishop,
-                PieceType::Rook,
-                PieceType::Queen,
-            ] {
-                let flag = MoveFlag::promotion(piece);
+            // We consider both quiet and capture promotions for queens in quiescence search
+            let promo_flag = MoveFlag::promotion(PieceType::Queen);
+            push_loop!(moves, promo & target, start, promo_flag);
+            push_loop!(moves, promo_captures & target, start, promo_flag);
 
-                if matches!(TYPE, GenerationType::All | GenerationType::Quiet) {
-                    push_loop!(moves, promo & target, start, flag);
-                }
+            // We have to generate each possible piece and target square combination
+            for piece in [PieceType::Rook, PieceType::Bishop, PieceType::Knight] {
+                let flag = MoveFlag::promotion(piece);
 
                 if matches!(TYPE, GenerationType::All | GenerationType::Capture) {
                     push_loop!(moves, promo_captures & target, start, flag);
+                }
+
+                if matches!(TYPE, GenerationType::All | GenerationType::Quiet) {
+                    push_loop!(moves, promo & target, start, flag);
                 }
             }
 

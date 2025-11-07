@@ -14,7 +14,7 @@ use crate::{
 pub use limit::SearchLimit;
 use types::Move;
 
-pub const MAX_DEPTH: u16 = 128;
+pub const MAX_DEPTH: usize = 128;
 
 pub fn go(pos: &Position, limits: &SearchLimit, abort: &AtomicBool) -> (i32, Option<Move>) {
     let mut main = ThreadData::new(&abort, pos.clone(), true, limits.clone());
@@ -120,3 +120,4 @@ fn alpha_beta(thread: &mut ThreadData, mut alpha: i32, beta: i32, depth: i16, pl
 
     best_score
 }
+

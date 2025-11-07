@@ -1,6 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
+use arrayvec::ArrayVec;
 use types::Move;
+
+const MAX_MOVES: usize = 218;
 
 pub struct MoveListEntry {
     pub mov: Move,
@@ -8,13 +11,13 @@ pub struct MoveListEntry {
 }
 
 pub struct MoveList {
-    inner: Vec<MoveListEntry>,
+    inner: ArrayVec<MoveListEntry, MAX_MOVES>,
 }
 
 impl MoveList {
     pub fn new() -> Self {
         Self {
-            inner: Vec::with_capacity(40),
+            inner: ArrayVec::new(),
         }
     }
 

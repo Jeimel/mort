@@ -190,7 +190,7 @@ fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<SearchLimit, E
         });
     }
 
-    limits.depth = limits.depth.min(MAX_DEPTH);
+    limits.depth = limits.depth.min(MAX_DEPTH as u16);
     limits.time = left[stm] / 20 + increment[stm] / 2;
 
     Ok(limits)

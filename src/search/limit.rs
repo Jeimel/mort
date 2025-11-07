@@ -11,7 +11,7 @@ pub struct SearchLimit {
 impl SearchLimit {
     pub const MAX: Self = Self {
         perft: 0,
-        depth: MAX_DEPTH,
+        depth: MAX_DEPTH as u16,
         nodes: u64::MAX,
         time: u128::MAX,
     };

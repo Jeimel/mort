@@ -5,7 +5,7 @@ use std::{
 
 use types::Move;
 
-use crate::{Position, evaluation::DRAW, search::SearchLimit};
+use crate::{chess::Position, evaluation::DRAW, search::SearchLimit};
 
 pub struct ThreadData<'a> {
     // Search

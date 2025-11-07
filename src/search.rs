@@ -5,7 +5,7 @@ mod quiescence;
 use std::sync::atomic::AtomicBool;
 
 use crate::{
-    Position,
+    chess::Position,
     evaluation::{DRAW, INF},
     search::{picker::MovePicker, quiescence::quiescence},
     thread::ThreadData,
@@ -120,4 +120,3 @@ fn alpha_beta(thread: &mut ThreadData, mut alpha: i32, beta: i32, depth: i16, pl
 
     best_score
 }
-

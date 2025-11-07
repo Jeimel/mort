@@ -8,10 +8,10 @@ use std::{
 use types::Color;
 
 use crate::{
-    Position,
-    chess::{GenerationType, MoveList},
+    chess::{GenerationType, MoveList, Position},
     error::Error,
     evaluation::evaluate,
+    perft::perft,
     search::{MAX_DEPTH, SearchLimit, go},
     syntax_error,
 };
@@ -127,7 +127,7 @@ fn handle_go(
     let limits = handle_limits(&mut commands.iter(), pos.stm())?;
 
     if limits.perft != 0 {
-        crate::perft::<true>(&mut pos.clone(), limits.perft);
+        perft::<true>(&mut pos.clone(), limits.perft);
 
         return Ok(());
     }

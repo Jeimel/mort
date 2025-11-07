@@ -2,22 +2,33 @@ mod limit;
 mod picker;
 mod quiescence;
 
+use std::sync::atomic::AtomicBool;
+
 use crate::{
+    Position,
     evaluation::{DRAW, INF},
     search::{picker::MovePicker, quiescence::quiescence},
     thread::ThreadData,
 };
 
 pub use limit::SearchLimit;
+use types::Move;
 
-pub fn go(thread: &mut ThreadData) {
-    iterative_deepening(thread, thread.limits.depth);
+pub const MAX_DEPTH: u16 = 128;
+
+pub fn go(pos: &Position, limits: &SearchLimit, abort: &AtomicBool) -> (i32, Option<Move>) {
+    let mut main = ThreadData::new(&abort, pos.clone(), true, limits.clone());
+
+    iterative_deepening(&mut main, limits.depth);
+
+    (main.score, main.best)
 }
 
 fn iterative_deepening(thread: &mut ThreadData, max_depth: u16) {
     for depth in 1..=max_depth {
-        let score = alpha_beta(thread, -INF, INF, depth, 0);
+        let score = alpha_beta(thread, -INF, INF, depth as i16, 0);
 
+        // Did we finish the last iteration?
         if thread.abort() {
             break;
         }
@@ -43,17 +54,17 @@ fn iterative_deepening(thread: &mut ThreadData, max_depth: u16) {
     thread.best = Some(mov);
 }
 
-fn alpha_beta(thread: &mut ThreadData, mut alpha: i32, beta: i32, depth: u16, ply: i32) -> i32 {
+fn alpha_beta(thread: &mut ThreadData, mut alpha: i32, beta: i32, depth: i16, ply: i32) -> i32 {
     if depth <= 0 {
         return quiescence(thread, alpha, beta, ply);
     }
-
-    let root = ply == 0;
 
     // We only check the constraints on the main search thread
     if thread.main() {
         thread.check_limits();
     }
+
+    let root = ply == 0;
 
     if !root && (thread.abort() || thread.pos.draw() || thread.pos.repetition()) {
         return DRAW;
@@ -109,3 +120,4 @@ fn alpha_beta(thread: &mut ThreadData, mut alpha: i32, beta: i32, depth: u16, pl
 
     best_score
 }
+

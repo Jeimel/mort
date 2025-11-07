@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-use crate::{chess::FenParseError, uci::UciError};
+use crate::chess::FenParseError;
+
+pub type UciError = String;
 
 #[macro_export]
 macro_rules! syntax_error {
@@ -31,3 +33,4 @@ impl From<FenParseError> for Error {
         Self::Fen(value)
     }
 }
+

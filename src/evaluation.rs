@@ -22,7 +22,7 @@ pub fn evaluate(pos: &Position) -> i32 {
         for sq in layout.color(color).iter() {
             let piece = layout.piece_at(sq);
 
-            let sq = if color == Color::White { sq } else { sq.flip() };
+            let sq = if color == Color::White { sq.flip() } else { sq };
             midgame[color] += MIDGAME_TABLE[piece][sq] + MIDGAME_VALUE[piece];
             endgame[color] += ENDGAME_TABLE[piece][sq] + ENDGAME_VALUE[piece];
 

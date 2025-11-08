@@ -2,12 +2,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::{
     chess::Position,
-    search::{SearchLimit, data::SearchData},
+    search::{SearchLimit, info::SearchInfo},
 };
 
 pub struct ThreadData<'a> {
     pub pos: Position,
-    pub data: SearchData,
+    pub info: SearchInfo,
     limits: SearchLimit,
     abort: &'a AtomicBool,
     main: bool,
@@ -17,7 +17,7 @@ impl<'a> ThreadData<'a> {
     pub fn new(pos: Position, limits: SearchLimit, abort: &'a AtomicBool, main: bool) -> Self {
         Self {
             pos,
-            data: SearchData::new(),
+            info: SearchInfo::new(),
             limits,
             abort,
             main,
@@ -29,7 +29,7 @@ impl<'a> ThreadData<'a> {
     }
 
     pub fn check_limits(&self) {
-        if self.limits.check(&self.data) {
+        if self.limits.check(&self.info) {
             self.abort.store(true, Ordering::Relaxed);
         }
     }

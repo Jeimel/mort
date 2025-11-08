@@ -133,7 +133,7 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::Position;
+    use crate::chess::Position;
 
     const FEN: [&str; 6] = [
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",

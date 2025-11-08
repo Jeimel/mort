@@ -2,14 +2,14 @@ use std::time::Instant;
 
 use crate::search::PrincipalVariation;
 
-pub struct SearchData {
+pub struct SearchInfo {
     pub start: Instant,
     pub nodes: u64,
     pub completed: u16,
     pub pv: PrincipalVariation,
 }
 
-impl SearchData {
+impl SearchInfo {
     pub fn new() -> Self {
         Self {
             start: Instant::now(),
@@ -17,5 +17,12 @@ impl SearchData {
             completed: 0,
             pv: PrincipalVariation::EMPTY,
         }
+    }
+
+    pub fn report(&self) {
+        println!(
+            "info depth {} score cp {} nodes {} pv {}",
+            self.completed, self.pv.score, self.nodes, self.pv
+        )
     }
 }

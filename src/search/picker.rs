@@ -86,6 +86,8 @@ impl MovePicker {
                 _ => PieceType::Queen,
             };
 
+            debug_assert!(capture != PieceType::King);
+
             entry.score = 100 * VALUE[capture] - VALUE[piece];
         }
     }

@@ -22,7 +22,7 @@ impl Slider {
             let (delta_file, delta_rank) = self.deltas[i];
             let mut ray = sq;
 
-            debug_assert!(delta_file == 0 && delta_rank == 0);
+            debug_assert!(delta_file != 0 || delta_rank != 0);
 
             while (ray.set().0 & blockers.0) == 0 {
                 match ray.try_delta(delta_file, delta_rank) {
@@ -47,7 +47,7 @@ impl Slider {
             let (delta_file, delta_rank) = self.deltas[i];
             let mut ray = sq;
 
-            debug_assert!(delta_file == 0 && delta_rank == 0);
+            debug_assert!(delta_file != 0 || delta_rank != 0);
 
             while let Some(sq) = ray.try_delta(delta_file, delta_rank) {
                 blockers = blockers | ray.set().0;

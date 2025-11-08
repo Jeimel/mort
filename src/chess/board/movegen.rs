@@ -92,6 +92,8 @@ impl Board {
 
         // We only have to generate non-king moves if our king is not in double check
         if !EVADING || checkers.is_less_two() {
+            debug_assert!(checkers.popcnt() < 2);
+
             target = match EVADING {
                 true => BETWEEN[self.layout.kings[color]][checkers.index_lsb() as usize],
                 false => !self.layout.color(color),

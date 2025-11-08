@@ -7,13 +7,13 @@ use crate::chess::attacks;
 #[derive(Clone, Copy)]
 pub struct PieceLayout {
     // Piece-centric board representation
-    pub colors: [SquareSet; 2],
-    pub kings: [Square; 2],
-    pub rooks: SquareSet,
-    pub bishops: SquareSet,
-    pub pawns: SquareSet,
+    pub(crate) colors: [SquareSet; 2],
+    pub(crate) kings: [Square; 2],
+    pub(crate) rooks: SquareSet,
+    pub(crate) bishops: SquareSet,
+    pub(crate) pawns: SquareSet,
     // Square-centric board representation
-    pub mailbox: [Option<Piece>; 64],
+    pub(crate) mailbox: [Option<Piece>; 64],
 }
 
 impl Display for PieceLayout {
@@ -112,6 +112,7 @@ impl PieceLayout {
 
     #[rustfmt::skip]
     pub(crate) fn attacked(&self, set: SquareSet, color: Color, occ: SquareSet) -> bool {
+        debug_assert!(!set.is_empty());
         set.iter().all(|sq| self.attackers(sq, color, occ).is_empty())
     }
 

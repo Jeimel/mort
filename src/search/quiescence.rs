@@ -1,7 +1,6 @@
 use crate::{
     evaluation::{DRAW, INF, evaluate},
-    search::picker::MovePicker,
-    thread::ThreadData,
+    search::{picker::MovePicker, thread::ThreadData},
 };
 
 pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) -> i32 {
@@ -64,7 +63,7 @@ pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) 
         alpha = score;
     }
 
-    thread.nodes += legal;
+    thread.data.nodes += legal;
 
     if legal == 0 && check {
         return i32::from(check) * (ply - INF);

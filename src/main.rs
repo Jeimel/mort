@@ -6,7 +6,6 @@ mod evaluation;
 mod perft;
 mod rng;
 mod search;
-mod thread;
 mod uci;
 
 fn main() {

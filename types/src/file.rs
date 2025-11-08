@@ -67,12 +67,14 @@ impl<T> Index<File> for [T; 8] {
     type Output = T;
 
     fn index(&self, index: File) -> &Self::Output {
+        // Safety: `index` is in [0, 8)
         unsafe { self.get_unchecked(index as usize) }
     }
 }
 
 impl<T> IndexMut<File> for [T; 8] {
     fn index_mut(&mut self, index: File) -> &mut Self::Output {
+        // Safety: `index` is in [0, 8)
         unsafe { self.get_unchecked_mut(index as usize) }
     }
 }

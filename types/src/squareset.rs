@@ -111,6 +111,9 @@ impl Iterator for SquareIter {
         let lsb = self.set.index_lsb();
         self.set = self.set.reset_lsb();
 
+        debug_assert!(lsb < 64);
+        debug_assert!((self.set & SquareSet(1 << lsb)).is_empty());
+
         Square::new(lsb)
     }
 }

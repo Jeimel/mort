@@ -112,12 +112,14 @@ impl<T> Index<Castling> for [T; 16] {
     type Output = T;
 
     fn index(&self, index: Castling) -> &Self::Output {
+        // Safety: `index` is in [0, 16)
         unsafe { self.get_unchecked(index.0 as usize) }
     }
 }
 
 impl<T> IndexMut<Castling> for [T; 16] {
     fn index_mut(&mut self, index: Castling) -> &mut Self::Output {
+        // Safety: `index` is in [0, 16)
         unsafe { self.get_unchecked_mut(index.0 as usize) }
     }
 }

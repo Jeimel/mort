@@ -1,4 +1,4 @@
-use crate::Position;
+use crate::chess::Position;
 
 impl Position {
     pub fn repetition(&self) -> bool {

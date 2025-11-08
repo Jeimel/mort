@@ -1,9 +1,6 @@
 use types::{Move, MoveFlag, PieceType};
 
-use crate::{
-    Position,
-    chess::{GenerationType, MoveList, MoveListEntry, PieceLayout},
-};
+use crate::chess::{GenerationType, MoveList, MoveListEntry, PieceLayout, Position};
 
 // We sort our moves in stages to limit the amount of move generation
 #[derive(PartialEq)]

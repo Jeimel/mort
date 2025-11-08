@@ -8,18 +8,15 @@ use std::{
 use types::Color;
 
 use crate::{
-    Position,
-    chess::{GenerationType, MoveList},
+    chess::{GenerationType, MoveList, Position},
     error::Error,
     evaluation::evaluate,
-    search::{self, SearchLimit},
+    perft::perft,
+    search::{MAX_DEPTH, SearchLimit, go},
     syntax_error,
-    thread::ThreadData,
 };
 
 const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-pub type UciError = String;
 
 fn read() -> Option<String> {
     let mut input = String::new();
@@ -60,16 +57,16 @@ pub fn run() {
             "quit" => process::exit(0),
             "uci" => identify(),
             "position" => {
-                handle_position(&mut pos, commands).unwrap_or_else(|err| println!("{}", err))
+                handle_position(&mut pos, commands).unwrap_or_else(|err| eprintln!("{}", err))
             }
             "ucinewgame" => pos = Position::from_fen(START_POS).unwrap(),
             "isready" => println!("readyok"),
             "go" => {
-                handle_go(&pos, commands, &mut buffer).unwrap_or_else(|err| println!("{}", err))
+                handle_go(&pos, commands, &mut buffer).unwrap_or_else(|err| eprintln!("{}", err))
             }
             "d" => println!("{}", pos),
             "eval" => println!("score cp {}", evaluate(&pos)),
-            _ => println!("Unknown command: {}", command),
+            _ => eprintln!("Unknown command: {}", command),
         };
     }
 }
@@ -130,24 +127,25 @@ fn handle_go(
     let limits = handle_limits(&mut commands.iter(), pos.stm())?;
 
     if limits.perft != 0 {
-        crate::perft::<true>(&mut pos.clone(), limits.perft);
+        perft::<true>(&mut pos.clone(), limits.perft);
 
         return Ok(());
     }
 
-    let mut main = ThreadData::new(&abort, pos.clone(), true, limits);
-
     thread::scope(|s| {
         s.spawn(|| {
-            search::go(&mut main);
+            let (_, mov) = go(&pos, &limits, &abort);
 
-            println!("bestmove {}", main.best.unwrap());
+            match mov {
+                Some(mov) => println!("bestmove {}", mov),
+                _ => eprintln!("Internal error: No move found"),
+            };
         });
 
         *buffer = handle_search_input(&abort);
-    });
 
-    Ok(())
+        Ok(())
+    })
 }
 
 fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<SearchLimit, Error> {
@@ -192,6 +190,7 @@ fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<SearchLimit, E
         });
     }
 
+    limits.depth = limits.depth.min(MAX_DEPTH as u16);
     limits.time = left[stm] / 20 + increment[stm] / 2;
 
     Ok(limits)
@@ -223,3 +222,4 @@ fn handle_search_input(abort: &AtomicBool) -> Option<String> {
 
     None
 }
+

@@ -3,7 +3,7 @@ mod tables;
 use tables::{ENDGAME_TABLE, MIDGAME_TABLE};
 use types::Color;
 
-use crate::Position;
+use crate::chess::Position;
 
 pub const INF: i32 = 30_000;
 pub const DRAW: i32 = 0;

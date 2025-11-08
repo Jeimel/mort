@@ -1,7 +1,4 @@
-use crate::{
-    Position,
-    chess::{GenerationType, MoveList},
-};
+use crate::chess::{GenerationType, MoveList, Position};
 
 pub fn perft<const ROOT: bool>(pos: &mut Position, depth: u16) -> usize {
     if depth == 0 {
@@ -40,8 +37,8 @@ mod tests {
         ($name:ident, $fen:literal, $result:literal, $depth:literal) => {
             #[test]
             fn $name() {
-                let mut pos = crate::Position::from_fen($fen).unwrap();
-                assert_eq!($result, crate::perft::<false>(&mut pos, $depth));
+                let mut pos = crate::chess::Position::from_fen($fen).unwrap();
+                assert_eq!($result, crate::chess::perft::<false>(&mut pos, $depth));
             }
         };
     }

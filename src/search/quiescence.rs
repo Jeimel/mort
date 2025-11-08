@@ -1,9 +1,12 @@
 use crate::{
     evaluation::{DRAW, INF, evaluate},
-    search::{picker::MovePicker, thread::ThreadData},
+    search::{MAX_PLY, picker::MovePicker, thread::ThreadData},
 };
 
 pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) -> i32 {
+    debug_assert!(-INF <= alpha && alpha < beta && beta <= INF);
+    debug_assert!(0 <= ply && ply < MAX_PLY);
+
     // Again, we only check the constraints on the main search thread
     if thread.main() {
         thread.check_limits();
@@ -46,6 +49,8 @@ pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) 
         let score = -quiescence(thread, -beta, -alpha, ply + 1);
         thread.pos.unmake_move(mov);
 
+        debug_assert!(-INF < score && score < INF);
+
         if score <= best_score {
             continue;
         }
@@ -63,11 +68,13 @@ pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) 
         alpha = score;
     }
 
-    thread.data.nodes += legal;
+    thread.info.nodes += legal;
 
     if legal == 0 && check {
         return i32::from(check) * (ply - INF);
     }
+
+    debug_assert!(-INF < best_score && best_score < INF);
 
     best_score
 }

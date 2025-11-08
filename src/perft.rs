@@ -38,7 +38,7 @@ mod tests {
             #[test]
             fn $name() {
                 let mut pos = crate::chess::Position::from_fen($fen).unwrap();
-                assert_eq!($result, crate::chess::perft::<false>(&mut pos, $depth));
+                assert_eq!($result, crate::perft::perft::<false>(&mut pos, $depth));
             }
         };
     }

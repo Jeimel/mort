@@ -60,6 +60,8 @@ impl Board {
 
         let piece = self.layout.piece_at(start);
 
+        debug_assert!(!(start.set() & self.layout.color(color)).is_empty());
+
         self.state.zobrist ^= zobrist::SIDE;
         self.state.zobrist ^= zobrist::CASTLING[self.state.castling];
 
@@ -101,6 +103,8 @@ impl Board {
             MoveFlag::CAPTURE => {
                 let capture = self.layout.piece_at(target);
 
+                debug_assert!(capture != PieceType::King);
+
                 self.toggle::<true>(target, !color, capture);
 
                 self.state.rule50_ply = 0;
@@ -120,7 +124,13 @@ impl Board {
         // Determine which piece must be placed on the target square
         let piece = match flag.promotion_piece() {
             // We promote our piece
-            Some(piece) => piece,
+            Some(piece) => {
+                debug_assert!(matches!(
+                    piece,
+                    PieceType::Knight | PieceType::Bishop | PieceType::Rook | PieceType::Queen
+                ));
+                piece
+            }
             // We just move our piece to the target square
             None => piece,
         };
@@ -137,9 +147,17 @@ impl Board {
         // Add our new piece back on the board
         self.toggle::<true>(target, color, piece);
 
+        debug_assert!(!(target.set() & self.layout.color(color)).is_empty());
+
         // We have to update for the next side to move only
         self.state.set_blockers(!color, &self.layout);
         self.state.set_checkers(!color, &self.layout);
+
+        debug_assert!(
+            self.layout
+                .attackers(self.layout.kings[color], color, self.layout.all())
+                .is_empty()
+        );
     }
 
     pub fn unmake_move(&mut self, mov: Move, color: Color, state: GameState) {
@@ -148,6 +166,8 @@ impl Board {
         let flag = mov.flag();
 
         let piece = self.layout.piece_at(target);
+
+        debug_assert!(!(target.set() & self.layout.color(color)).is_empty());
 
         self.toggle::<false>(target, color, piece);
 
@@ -169,15 +189,26 @@ impl Board {
         };
 
         let piece = match flag.promotion_piece() {
-            Some(_) => PieceType::Pawn,
+            Some(_) => {
+                debug_assert!(matches!(
+                    piece,
+                    PieceType::Knight | PieceType::Bishop | PieceType::Rook | PieceType::Queen
+                ));
+                PieceType::Pawn
+            }
             None => piece,
         };
 
         if let Some(capture) = self.state.capture {
+            debug_assert!((target.set() & self.layout.color(!color)).is_empty());
+            debug_assert!(capture != PieceType::King);
+
             self.toggle::<false>(target, !color, capture);
         }
 
         self.toggle::<false>(start, color, piece);
+
+        debug_assert!(!(start.set() & self.layout.color(color)).is_empty());
 
         self.state = state;
     }

@@ -33,4 +33,3 @@ impl From<FenParseError> for Error {
         Self::Fen(value)
     }
 }
-

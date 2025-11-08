@@ -1,4 +1,4 @@
-mod data;
+mod info;
 mod limit;
 mod picker;
 mod pv;
@@ -11,7 +11,7 @@ use std::sync::atomic::AtomicBool;
 
 use crate::{
     chess::Position,
-    evaluation::{DRAW, INF},
+    evaluation::{DRAW, INF, MATE, mated_in},
     search::{
         picker::MovePicker, pv::PrincipalVariation, quiescence::quiescence, thread::ThreadData,
     },
@@ -20,14 +20,15 @@ use crate::{
 use types::Move;
 
 pub const MAX_DEPTH: usize = 128;
+pub const MAX_PLY: i32 = 128;
 
 pub fn go(pos: &Position, limits: &SearchLimit, abort: &AtomicBool) -> (i32, Option<Move>) {
     let mut main = ThreadData::new(pos.clone(), limits.clone(), &abort, true);
 
     iterative_deepening(&mut main, limits.depth);
 
-    let score = main.data.pv.score;
-    let mov = main.data.pv.line.first().copied();
+    let score = main.info.pv.score;
+    let mov = main.info.pv.line.first().copied();
 
     if mov.is_some() {
         return (score, mov);
@@ -43,20 +44,22 @@ fn iterative_deepening(thread: &mut ThreadData, max_depth: u16) {
     let mut pv = PrincipalVariation::EMPTY;
 
     for depth in 1..=max_depth {
-        alpha_beta(thread, &mut pv, -INF, INF, depth as i16, 0);
+        alpha_beta(thread, &mut pv, -INF, INF, depth as i32, 0);
 
-        // Did we finish the last iteration?
+        // We only consider finished iterations
         if thread.abort() {
             break;
         }
 
-        thread.data.pv = pv.clone();
-        thread.data.completed = depth;
+        thread.info.pv = pv.clone();
+        thread.info.completed = depth;
 
-        println!(
-            "info score cp {} depth {} nodes {} pv {}",
-            pv.score, depth, thread.data.nodes, pv,
-        );
+        thread.info.report();
+
+        // We can skip further search if we found a forced mate
+        if thread.info.pv.score.abs() >= MATE {
+            break;
+        }
     }
 }
 
@@ -65,12 +68,17 @@ fn alpha_beta(
     pv: &mut PrincipalVariation,
     mut alpha: i32,
     beta: i32,
-    depth: i16,
+    depth: i32,
     ply: i32,
 ) -> i32 {
+    debug_assert!(-INF <= alpha && alpha < beta && beta <= INF);
+    debug_assert!(0 <= ply && ply < MAX_PLY);
+
     if depth <= 0 {
         return quiescence(thread, alpha, beta, ply);
     }
+
+    debug_assert!(0 < depth && depth < MAX_PLY);
 
     // We only check the constraints on the main search thread
     if thread.main() {
@@ -102,6 +110,8 @@ fn alpha_beta(
         let score = -alpha_beta(thread, &mut local_pv, -beta, -alpha, depth - 1, ply + 1);
         thread.pos.unmake_move(mov);
 
+        debug_assert!(-INF < score && score < INF);
+
         if score <= best_score {
             continue;
         }
@@ -121,11 +131,13 @@ fn alpha_beta(
         alpha = score;
     }
 
-    thread.data.nodes += legal;
+    thread.info.nodes += legal;
 
     if legal == 0 {
-        return i32::from(check) * (ply - INF);
+        return if check { mated_in(ply) } else { 0 };
     }
+
+    debug_assert!(-INF < best_score && best_score < INF);
 
     best_score
 }

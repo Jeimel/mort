@@ -222,4 +222,3 @@ fn handle_search_input(abort: &AtomicBool) -> Option<String> {
 
     None
 }
-

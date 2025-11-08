@@ -1,12 +1,12 @@
+mod score;
 mod tables;
+
+pub use score::{DRAW, INF, MATE, mate_in, mated_in};
 
 use tables::{ENDGAME_TABLE, MIDGAME_TABLE};
 use types::Color;
 
 use crate::chess::Position;
-
-pub const INF: i32 = 30_000;
-pub const DRAW: i32 = 0;
 
 const MIDGAME_VALUE: [i32; 6] = [82, 337, 365, 477, 1025, 0];
 const ENDGAME_VALUE: [i32; 6] = [94, 281, 297, 512, 936, 0];
@@ -31,6 +31,8 @@ pub fn evaluate(pos: &Position) -> i32 {
     }
 
     phase = phase.min(24);
+
+    debug_assert!(phase <= 24);
 
     ((midgame[stm] - midgame[!stm]) * phase + (endgame[stm] - endgame[!stm]) * (24 - phase)) / 24
 }

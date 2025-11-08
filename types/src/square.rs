@@ -75,12 +75,15 @@ impl<T> Index<Square> for [T; 64] {
     type Output = T;
 
     fn index(&self, index: Square) -> &Self::Output {
+        // Safety: `index` is in [0, 64)
+
         unsafe { self.get_unchecked(index as usize) }
     }
 }
 
 impl<T> IndexMut<Square> for [T; 64] {
     fn index_mut(&mut self, index: Square) -> &mut Self::Output {
+        // Safety: `index` is in [0, 64)
         unsafe { self.get_unchecked_mut(index as usize) }
     }
 }

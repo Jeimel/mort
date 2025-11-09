@@ -1,5 +1,5 @@
 use crate::{
-    evaluation::{DRAW, INF, evaluate},
+    evaluation::{DRAW, INF, evaluate, mated_in},
     search::{MAX_PLY, picker::MovePicker, thread::ThreadData},
 };
 
@@ -14,7 +14,7 @@ pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) 
 
     let check = thread.pos.check();
 
-    if thread.abort() || thread.pos.draw() || thread.pos.repetition() {
+    if thread.abort() || thread.pos.draw() {
         return if !check { evaluate(&thread.pos) } else { DRAW };
     }
 
@@ -71,7 +71,7 @@ pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) 
     thread.info.nodes += legal;
 
     if legal == 0 && check {
-        return i32::from(check) * (ply - INF);
+        return mated_in(ply);
     }
 
     debug_assert!(-INF < best_score && best_score < INF);

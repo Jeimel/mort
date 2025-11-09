@@ -19,7 +19,7 @@ use crate::{
 pub struct Position {
     board: Board,
     stm: Color,
-    ply: u16,
+    ply: usize,
     history: Vec<GameState>,
 }
 
@@ -53,6 +53,7 @@ impl Position {
         &self.board.layout
     }
 
+    #[allow(dead_code)]
     pub fn zobrist(&self) -> Key {
         self.board.state.zobrist
     }
@@ -87,6 +88,6 @@ impl Position {
     }
 
     pub fn draw(&self) -> bool {
-        self.board.draw()
+        self.board.draw() || self.repetition() && self.ply != 0
     }
 }

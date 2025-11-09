@@ -19,7 +19,7 @@ macro_rules! ok_or {
 pub type FenParseError = String;
 
 impl Board {
-    pub fn from_fen(fen: &str) -> Result<(Self, Color, u16), FenParseError> {
+    pub fn from_fen(fen: &str) -> Result<(Self, Color, usize), FenParseError> {
         let mut board = Self {
             layout: PieceLayout::EMPTY,
             state: GameState::EMPTY,
@@ -49,7 +49,7 @@ impl Board {
         Ok((board, stm, fullmove))
     }
 
-    pub fn fen(&self, stm: Color, fullmove: u16) -> String {
+    pub fn fen(&self, stm: Color, fullmove: usize) -> String {
         format!(
             "{} {} {} {} {} {}",
             self.layout,

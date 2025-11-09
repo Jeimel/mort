@@ -4,7 +4,7 @@ use crate::chess::board::{BETWEEN, Key, PieceLayout};
 
 #[derive(Clone)]
 pub struct GameState {
-    pub rule50_ply: u16,
+    pub rule50_ply: u8,
     pub castling: Castling,
     pub en_passant: Option<Square>,
     pub capture: Option<PieceType>,

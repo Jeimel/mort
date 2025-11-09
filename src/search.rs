@@ -11,7 +11,7 @@ use std::sync::atomic::AtomicBool;
 
 use crate::{
     chess::Position,
-    evaluation::{DRAW, INF, MATE, mated_in},
+    evaluation::{DRAW, INF, MATE, mate_in, mated_in},
     search::{
         picker::MovePicker, pv::PrincipalVariation, quiescence::quiescence, thread::ThreadData,
     },
@@ -78,6 +78,8 @@ fn alpha_beta(
         return quiescence(thread, alpha, beta, ply);
     }
 
+    pv.line.clear();
+
     debug_assert!(0 < depth && depth < MAX_PLY);
 
     // We only check the constraints on the main search thread
@@ -87,8 +89,10 @@ fn alpha_beta(
 
     let root = ply == 0;
 
-    if !root && (thread.abort() || thread.pos.draw() || thread.pos.repetition()) {
-        return DRAW;
+    if !root {
+        if thread.abort() || thread.pos.draw() {
+            return DRAW;
+        }
     }
 
     let check = thread.pos.check();
@@ -97,14 +101,13 @@ fn alpha_beta(
     let mut local_pv = PrincipalVariation::EMPTY;
 
     let mut picker = MovePicker::new();
-    let mut legal = 0;
 
     while let Some(mov) = picker.next(&thread.pos) {
         if !thread.pos.legal(mov) {
             continue;
         }
 
-        legal += 1;
+        thread.info.nodes += 1;
 
         thread.pos.make_move(mov);
         let score = -alpha_beta(thread, &mut local_pv, -beta, -alpha, depth - 1, ply + 1);
@@ -131,9 +134,7 @@ fn alpha_beta(
         alpha = score;
     }
 
-    thread.info.nodes += legal;
-
-    if legal == 0 {
+    if best_score == -INF {
         return if check { mated_in(ply) } else { 0 };
     }
 

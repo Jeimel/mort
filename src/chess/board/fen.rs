@@ -95,16 +95,13 @@ impl Board {
     }
 
     fn parse_castling(&mut self, fen: &str) -> Result<(), FenParseError> {
-        if fen == "-" {
-            return Ok(());
-        }
-
         for c in fen.chars() {
             match c {
                 'K' => self.state.castling.set_kingside(Color::White),
                 'Q' => self.state.castling.set_queenside(Color::White),
                 'k' => self.state.castling.set_kingside(Color::Black),
                 'q' => self.state.castling.set_queenside(Color::Black),
+                '-' if fen.len() == 1 => continue,
                 _ => return Err(format!("Expected 'KQkq' subset or '-', but found {}", c)),
             };
         }

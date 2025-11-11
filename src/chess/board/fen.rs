@@ -49,10 +49,10 @@ impl Board {
         Ok((board, stm, fullmove))
     }
 
-    pub fn fen(&self, stm: Color, fullmove: usize) -> String {
-        format!(
+    pub fn fen(&self, stm: Color, fullmove: usize) -> Result<String, std::fmt::Error> {
+        Ok(format!(
             "{} {} {} {} {} {}",
-            self.layout,
+            self.layout.fen()?,
             char::from(stm),
             self.state.castling,
             if let Some(target) = self.state.en_passant {
@@ -62,7 +62,7 @@ impl Board {
             },
             self.state.rule50_ply,
             fullmove,
-        )
+        ))
     }
 
     fn parse_board(&mut self, fen: &str) -> Result<(), FenParseError> {

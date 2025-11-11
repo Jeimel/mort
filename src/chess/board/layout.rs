@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::Write;
 
 use types::{Color, File, Piece, PieceType, Rank, Square, SquareSet};
 
@@ -7,48 +7,13 @@ use crate::chess::attacks;
 #[derive(Clone, Copy)]
 pub struct PieceLayout {
     // Piece-centric board representation
-    pub(crate) colors: [SquareSet; 2],
-    pub(crate) kings: [Square; 2],
-    pub(crate) rooks: SquareSet,
-    pub(crate) bishops: SquareSet,
-    pub(crate) pawns: SquareSet,
+    colors: [SquareSet; 2],
+    kings: [Square; 2],
+    rooks: SquareSet,
+    bishops: SquareSet,
+    pawns: SquareSet,
     // Square-centric board representation
-    pub(crate) mailbox: [Option<Piece>; 64],
-}
-
-impl Display for PieceLayout {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for rank in Rank::iter().rev() {
-            let mut empty = 0;
-
-            for file in File::iter() {
-                let piece = self.mailbox[Square::from(file, rank)];
-
-                if piece.is_none() {
-                    empty += 1;
-
-                    continue;
-                }
-
-                if empty != 0 {
-                    write!(f, "{}", empty)?;
-                    empty = 0;
-                }
-
-                write!(f, "{}", char::from(piece.unwrap()))?;
-            }
-
-            if empty != 0 {
-                write!(f, "{}", empty)?;
-            }
-
-            if rank != Rank::One {
-                write!(f, "/")?;
-            }
-        }
-
-        Ok(())
-    }
+    mailbox: [Option<Piece>; 64],
 }
 
 impl PieceLayout {
@@ -75,7 +40,7 @@ impl PieceLayout {
             PieceType::Knight => self.knights(),
             PieceType::Bishop => self.bishops(),
             PieceType::Rook => self.rooks(),
-            PieceType::Queen => self.queens(),
+            PieceType::Queen => self.rooks & self.bishops,
             PieceType::King => self.kings(),
         }
     }
@@ -86,6 +51,85 @@ impl PieceLayout {
         }
 
         unreachable!()
+    }
+
+    pub fn king(&self, color: Color) -> Square {
+        self.kings[color]
+    }
+
+    pub fn pawns(&self) -> SquareSet {
+        self.pawns
+    }
+
+    pub fn knights(&self) -> SquareSet {
+        self.all() - self.pawns - self.bishops - self.rooks - self.kings()
+    }
+
+    pub fn bishops(&self) -> SquareSet {
+        self.bishops
+    }
+
+    pub fn rooks(&self) -> SquareSet {
+        self.rooks
+    }
+
+    pub fn kings(&self) -> SquareSet {
+        self.kings[Color::White].set() | self.kings[Color::Black].set()
+    }
+
+    pub fn board(&self) -> Result<String, std::fmt::Error> {
+        const DELIMITER: &str = concat!("+---+---+---+---+---+---+---+---+", '\n');
+
+        let mut board = String::from(DELIMITER);
+
+        for row in (0..8).rev() {
+            let start = row * 8;
+
+            for piece in &self.mailbox[start..(start + 8)] {
+                write!(board, "| {} ", piece.map(|c| char::from(c)).unwrap_or(' '))?;
+            }
+
+            write!(board, "| {}\n{}", row + 1, DELIMITER)?;
+        }
+
+        write!(board, concat!("  a   b   c   d   e   f   g   h", '\n'))?;
+
+        Ok(board)
+    }
+
+    pub fn fen(&self) -> Result<String, std::fmt::Error> {
+        let mut fen = String::new();
+
+        for rank in Rank::iter().rev() {
+            let mut empty = 0;
+
+            for file in File::iter() {
+                let piece = self.mailbox[Square::from(file, rank)];
+
+                if piece.is_none() {
+                    empty += 1;
+
+                    continue;
+                }
+
+                if empty != 0 {
+                    write!(fen, "{}", empty)?;
+                    empty = 0;
+                }
+
+                write!(fen, "{}", char::from(piece.unwrap()))?;
+            }
+
+            if empty != 0 {
+                write!(fen, "{}", empty)?;
+            }
+
+            if rank != Rank::One {
+                write!(fen, "/")?;
+            }
+        }
+
+        Ok(fen)
     }
 
     pub(crate) fn toggle(&mut self, sq: Square, color: Color, piece: PieceType) {
@@ -130,29 +174,5 @@ impl PieceLayout {
         let bishops = attacks::bishop(sq, SquareSet::EMPTY) & self.bishops;
 
         (rooks | bishops) & self.color(!color)
-    }
-
-    fn pawns(&self) -> SquareSet {
-        self.pawns
-    }
-
-    fn knights(&self) -> SquareSet {
-        self.all() - self.pawns - self.bishops - self.rooks - self.kings()
-    }
-
-    fn bishops(&self) -> SquareSet {
-        self.bishops - self.rooks
-    }
-
-    fn rooks(&self) -> SquareSet {
-        self.rooks - self.bishops
-    }
-
-    fn queens(&self) -> SquareSet {
-        self.rooks & self.bishops
-    }
-
-    fn kings(&self) -> SquareSet {
-        self.kings[Color::White].set() | self.kings[Color::Black].set()
     }
 }

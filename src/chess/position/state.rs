@@ -29,7 +29,7 @@ impl GameState {
     pub fn set_blockers(&mut self, color: Color, layout: &PieceLayout) {
         self.blockers = SquareSet::EMPTY;
 
-        let king = layout.kings[color];
+        let king = layout.king(color);
 
         // Determine all sliders, which potentially attack our king
         let snipers = layout.snipers(king, color);
@@ -48,6 +48,6 @@ impl GameState {
     }
 
     pub fn set_checkers(&mut self, color: Color, layout: &PieceLayout) {
-        self.checkers = layout.attackers(layout.kings[color], color, layout.all())
+        self.checkers = layout.attackers(layout.king(color), color, layout.all())
     }
 }

@@ -1,6 +1,10 @@
 use std::fmt::Write;
 
-use types::{Color, File, Piece, PieceType, Rank, Square, SquareSet};
+use types::{
+    Color, File, Piece,
+    PieceType::{self, Bishop, King, Knight, Pawn, Queen, Rook},
+    Rank, Square, SquareSet,
+};
 
 use crate::chess::attacks;
 
@@ -9,9 +13,7 @@ pub struct PieceLayout {
     // Piece-centric board representation
     colors: [SquareSet; 2],
     kings: [Square; 2],
-    rooks: SquareSet,
-    bishops: SquareSet,
-    pawns: SquareSet,
+    pieces: [SquareSet; 6],
     // Square-centric board representation
     mailbox: [Option<Piece>; 64],
 }
@@ -20,9 +22,7 @@ impl PieceLayout {
     pub const EMPTY: Self = Self {
         colors: [SquareSet::EMPTY; 2],
         kings: [Square::A1; 2],
-        rooks: SquareSet::EMPTY,
-        bishops: SquareSet::EMPTY,
-        pawns: SquareSet::EMPTY,
+        pieces: [SquareSet::EMPTY; 6],
         mailbox: [None; 64],
     };
 
@@ -35,17 +35,14 @@ impl PieceLayout {
     }
 
     pub fn get(&self, piece: PieceType) -> SquareSet {
-        match piece {
-            PieceType::Pawn => self.pawns(),
-            PieceType::Knight => self.knights(),
-            PieceType::Bishop => self.bishops(),
-            PieceType::Rook => self.rooks(),
-            PieceType::Queen => self.rooks & self.bishops,
-            PieceType::King => self.kings(),
-        }
+        self.pieces[piece]
     }
 
-    pub fn piece_at(&self, sq: Square) -> PieceType {
+    pub fn at(&self, sq: Square) -> Option<Piece> {
+        self.mailbox[sq]
+    }
+
+    pub fn unchecked_at(&self, sq: Square) -> PieceType {
         if let Some(piece) = self.mailbox[sq] {
             return piece.typ();
         }
@@ -57,24 +54,12 @@ impl PieceLayout {
         self.kings[color]
     }
 
-    pub fn pawns(&self) -> SquareSet {
-        self.pawns
+    pub fn diagonal(&self) -> SquareSet {
+        self.pieces[Bishop] | self.pieces[Queen]
     }
 
-    pub fn knights(&self) -> SquareSet {
-        self.all() - self.pawns - self.bishops - self.rooks - self.kings()
-    }
-
-    pub fn bishops(&self) -> SquareSet {
-        self.bishops
-    }
-
-    pub fn rooks(&self) -> SquareSet {
-        self.rooks
-    }
-
-    pub fn kings(&self) -> SquareSet {
-        self.kings[Color::White].set() | self.kings[Color::Black].set()
+    pub fn orthogonal(&self) -> SquareSet {
+        self.pieces[Rook] | self.pieces[Queen]
     }
 
     pub fn board(&self) -> Result<String, std::fmt::Error> {
@@ -134,19 +119,11 @@ impl PieceLayout {
 
     pub(crate) fn toggle(&mut self, sq: Square, color: Color, piece: PieceType) {
         self.colors[color].toggle(sq);
+        self.pieces[piece].toggle(sq);
 
-        if matches!(piece, PieceType::Bishop | PieceType::Queen) {
-            self.bishops.toggle(sq);
+        if piece == King {
+            self.kings[color] = sq;
         }
-        if matches!(piece, PieceType::Rook | PieceType::Queen) {
-            self.rooks.toggle(sq);
-        }
-
-        match piece {
-            PieceType::Pawn => self.pawns.toggle(sq),
-            PieceType::King => self.kings[color] = sq,
-            _ => {}
-        };
 
         self.mailbox[sq] = match self.mailbox[sq] {
             Some(_) => None,
@@ -161,17 +138,17 @@ impl PieceLayout {
     }
 
     pub(crate) fn attackers(&self, sq: Square, color: Color, occ: SquareSet) -> SquareSet {
-        ((self.pawns & attacks::pawn(color, sq))
-            | (self.knights() & attacks::knight(sq))
-            | (self.bishops & attacks::bishop(sq, occ))
-            | (self.rooks & attacks::rook(sq, occ))
-            | (self.kings[!color].set() & attacks::king(sq)))
+        ((self.pieces[Pawn] & attacks::pawn(color, sq))
+            | (self.pieces[Knight] & attacks::knight(sq))
+            | (self.diagonal() & attacks::bishop(sq, occ))
+            | (self.orthogonal() & attacks::rook(sq, occ))
+            | (self.pieces[King] & attacks::king(sq)))
             & self.color(!color)
     }
 
     pub(crate) fn snipers(&self, sq: Square, color: Color) -> SquareSet {
-        let rooks = attacks::rook(sq, SquareSet::EMPTY) & self.rooks;
-        let bishops = attacks::bishop(sq, SquareSet::EMPTY) & self.bishops;
+        let rooks = attacks::rook(sq, SquareSet::EMPTY) & self.orthogonal();
+        let bishops = attacks::bishop(sq, SquareSet::EMPTY) & self.diagonal();
 
         (rooks | bishops) & self.color(!color)
     }

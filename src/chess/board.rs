@@ -49,7 +49,7 @@ impl Board {
         let target = mov.target();
         let flag = mov.flag();
 
-        let piece = self.layout.piece_at(start);
+        let piece = self.layout.unchecked_at(start);
 
         debug_assert!(!(start.set() & self.layout.color(color)).is_empty());
 
@@ -92,7 +92,7 @@ impl Board {
             }
             // Remove their piece from the board, and reset the fifty move counter
             MoveFlag::CAPTURE => {
-                let capture = self.layout.piece_at(target);
+                let capture = self.layout.unchecked_at(target);
 
                 debug_assert!(capture != King);
 
@@ -125,7 +125,7 @@ impl Board {
 
         // We captured their piece to promote ours
         if self.layout.all().is_set(target) {
-            let capture = self.layout.piece_at(target);
+            let capture = self.layout.unchecked_at(target);
 
             self.toggle::<true>(target, !color, capture);
 
@@ -152,7 +152,7 @@ impl Board {
         let target = mov.target();
         let flag = mov.flag();
 
-        let piece = self.layout.piece_at(target);
+        let piece = self.layout.unchecked_at(target);
 
         debug_assert!(!(target.set() & self.layout.color(color)).is_empty());
 

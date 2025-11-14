@@ -1,5 +1,5 @@
 use types::{
-    Color, File, Square, SquareSet,
+    Color, File, PieceType, Square, SquareSet,
     slider::magic::{bishop_magic_index, rook_magic_index},
 };
 
@@ -20,6 +20,28 @@ macro_rules! gen_lookup {
 
         attacks
     }};
+}
+
+pub fn by_type(piece: PieceType, sq: Square, occ: SquareSet) -> SquareSet {
+    match piece {
+        PieceType::Knight => knight(sq),
+        PieceType::Bishop => bishop(sq, occ),
+        PieceType::Rook => rook(sq, occ),
+        PieceType::Queen => rook(sq, occ) | bishop(sq, occ),
+        PieceType::King => king(sq),
+        _ => unreachable!(),
+    }
+}
+
+pub fn const_by_type<const PIECE: PieceType>(sq: Square, occ: SquareSet) -> SquareSet {
+    match PIECE {
+        PieceType::Knight => knight(sq),
+        PieceType::Bishop => bishop(sq, occ),
+        PieceType::Rook => rook(sq, occ),
+        PieceType::Queen => rook(sq, occ) | bishop(sq, occ),
+        PieceType::King => king(sq),
+        _ => unreachable!(),
+    }
 }
 
 /// Index precomputed diagonal attacks for pawns

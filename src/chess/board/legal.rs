@@ -1,4 +1,4 @@
-use types::{Castling, Color, Move, MoveFlag, PieceType, SquareSet};
+use types::{Color, Move, MoveFlag, PieceType, SquareSet};
 
 use crate::chess::{
     attacks,

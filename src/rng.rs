@@ -9,6 +9,8 @@ impl XorShiftState {
     }
 
     pub const fn next(&self) -> (u64, u64) {
+        debug_assert!(self.state != 0);
+
         let mut state = self.state;
 
         state ^= state >> 12;

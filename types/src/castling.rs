@@ -74,6 +74,18 @@ impl Castling {
         self.set(Self::QUEEN_MASK[color]);
     }
 
+    pub fn pseudo_kingside(&self, color: Color, occ: SquareSet) -> bool {
+        const OCC: [SquareSet; 2] = [SquareSet(0b0110_0000), SquareSet(0b0110_0000 << 56)];
+
+        self.kingside(color) && (occ & OCC[color]).is_empty()
+    }
+
+    pub fn pseudo_queenside(&self, color: Color, occ: SquareSet) -> bool {
+        const OCC: [SquareSet; 2] = [SquareSet(0b0000_1110), SquareSet(0b0000_1110 << 56)];
+
+        self.queenside(color) && (occ & OCC[color]).is_empty()
+    }
+
     fn is_set(&self, mask: u8) -> bool {
         self.0 & mask != 0
     }

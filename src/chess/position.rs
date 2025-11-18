@@ -61,6 +61,10 @@ impl Position {
         self.board.generate::<TYPE>(moves, self.stm);
     }
 
+    pub fn pseudo_legal(&self, mov: Move) -> bool {
+        self.board.pseudo_legal(mov, self.stm)
+    }
+
     pub fn legal(&self, mov: Move) -> bool {
         self.board.legal(mov, self.stm)
     }

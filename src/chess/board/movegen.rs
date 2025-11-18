@@ -2,9 +2,10 @@ use std::marker::ConstParamTy;
 
 use types::{Color, Move, MoveFlag, PieceType, Rank, Square, SquareSet};
 
-use crate::chess::{MoveList, attacks, board::Board};
-
-include!(concat!(env!("OUT_DIR"), "/squareset_tables.rs"));
+use crate::chess::{
+    MoveList, attacks,
+    board::{BETWEEN, Board},
+};
 
 macro_rules! push_loop {
     ($moves:expr, $set:expr, $start:expr, $flag:expr) => {
@@ -22,48 +23,9 @@ pub enum GenerationType {
 }
 
 impl Board {
-    #[inline(always)]
-    pub fn legal(&self, mov: Move, color: Color) -> bool {
-        const KING_PATH: [SquareSet; 2] = [SquareSet(0b0110_0000), SquareSet(0b0110_0000 << 56)];
-        const QUEEN_PATH: [SquareSet; 2] = [SquareSet(0b0000_1100), SquareSet(0b0000_1100 << 56)];
+    pub const PAWN_ROTATION: [u32; 2] = [8, 56];
 
-        let occ = self.layout.all();
-
-        if mov.flag() == MoveFlag::KING_CASTLE {
-            return self.layout.attacked(KING_PATH[color], color, occ);
-        }
-
-        if mov.flag() == MoveFlag::QUEEN_CASTLE {
-            return self.layout.attacked(QUEEN_PATH[color], color, occ);
-        }
-
-        let start = mov.start();
-        let target = mov.target();
-
-        if mov.flag() == MoveFlag::EN_PASSANT {
-            let king = self.layout.kings[color];
-
-            let capture = target.set().rotate([56, 8][color]);
-            let occ = (self.layout.all() - start.set() - capture) | target.set();
-
-            let rooks = attacks::rook(king, occ) & self.layout.rooks;
-            let bishops = attacks::bishop(king, occ) & self.layout.bishops;
-
-            // Is our king in check after making the en passant capture?
-            return ((rooks | bishops) & self.layout.color(!color)).is_empty();
-        }
-
-        // If the king moves, we must check if the target square is being attacked or not
-        if self.layout.piece_at(start) == PieceType::King {
-            #[rustfmt::skip]
-            return self.layout.attackers(target, color, occ - start.set()).is_empty();
-        }
-
-        // The start square must either not be a blocker of our king,
-        // or the piece moves towards the threat
-        (self.state.blockers & start.set()).is_empty()
-            || !(LINE[start][target] & self.layout.kings[color].set()).is_empty()
-    }
+    pub const DOUBLE_PUSH: [SquareSet; 2] = [Rank::Two.set(), Rank::Seven.set()];
 
     /// Generatae all pseudo-legal moves given the current position.
     ///
@@ -95,7 +57,7 @@ impl Board {
             debug_assert!(checkers.popcnt() < 2);
 
             target = match EVADING {
-                true => BETWEEN[self.layout.kings[color]][checkers.index_lsb() as usize],
+                true => BETWEEN[self.layout.king(color)][checkers.index_lsb() as usize],
                 false => !self.layout.color(color),
             };
 
@@ -132,10 +94,7 @@ impl Board {
         target: SquareSet,
         occ: SquareSet,
     ) {
-        const ROTATION: [u32; 2] = [8, 56];
-
         const PROMOTION_RANK: [SquareSet; 2] = [Rank::Eight.set(), Rank::One.set()];
-        const PRE_PROMOTION_RANK: [SquareSet; 2] = [Rank::Seven.set(), Rank::Two.set()];
 
         for start in (self.layout.get(PieceType::Pawn) & self.layout.color(color)).iter() {
             let set = start.set();
@@ -161,7 +120,7 @@ impl Board {
             //    their pieces on the last rank.
 
             // The moves for the first case are generated via single rank shift
-            let promo = (set & PRE_PROMOTION_RANK[color]).rotate(ROTATION[color]) - occ;
+            let promo = (set & Self::DOUBLE_PUSH[!color]).rotate(Self::PAWN_ROTATION[color]) - occ;
 
             // We consider both quiet and capture promotions for queens in quiescence search
             let promo_flag = MoveFlag::promotion(PieceType::Queen);
@@ -197,7 +156,7 @@ impl Board {
             // We have to exclude all promoting pawns, as those are already calculated.
             // To calculate the push, we just rotate the square set in the corresponding
             // direction, and remove all pushes, which advance to an occupied square
-            let single = (set - PRE_PROMOTION_RANK[color]).rotate(ROTATION[color]) - occ;
+            let single = (set - Self::DOUBLE_PUSH[!color]).rotate(Self::PAWN_ROTATION[color]) - occ;
             push_loop!(moves, single & target, start, MoveFlag::QUIET);
 
             // If the path for a single push is blocked, we cannot double push our pawn
@@ -208,8 +167,8 @@ impl Board {
             // A pawn can only advance two squares, if present on the enemey penultimate
             // promotion rank, which we can filter out. Next, we double the shift, as we
             // advance two squares, and again, remove occupied squares
-            let double = (set & PRE_PROMOTION_RANK[!color]).rotate(2 * ROTATION[color]) - occ;
-            push_loop!(moves, double & target, start, MoveFlag::DOUBLE_PAWN);
+            let double = (set & Self::DOUBLE_PUSH[color]).rotate(2 * Self::PAWN_ROTATION[color]);
+            push_loop!(moves, (double - occ) & target, start, MoveFlag::DOUBLE_PAWN);
         }
     }
 
@@ -224,14 +183,7 @@ impl Board {
         let pieces = self.layout.get(PIECE) & self.layout.color(color);
 
         for start in pieces.iter() {
-            let attacks = match PIECE {
-                PieceType::Knight => attacks::knight(start),
-                PieceType::Bishop => attacks::bishop(start, occ),
-                PieceType::Rook => attacks::rook(start, occ),
-                PieceType::Queen => attacks::rook(start, occ) | attacks::bishop(start, occ),
-                PieceType::King => attacks::king(start),
-                _ => unreachable!(),
-            };
+            let attacks = attacks::const_by_type::<PIECE>(start, occ);
 
             // The intersection between our attacks and their pieces yields all captures
             if matches!(TYPE, GenerationType::All | GenerationType::Capture) {
@@ -249,19 +201,16 @@ impl Board {
 
     #[inline(always)]
     fn generate_castling(&self, moves: &mut MoveList, color: Color, occ: SquareSet) {
-        const KING_MASK: [SquareSet; 2] = [SquareSet(0b0110_0000), SquareSet(0b0110_0000 << 56)];
-        const QUEEN_MASK: [SquareSet; 2] = [SquareSet(0b0000_1110), SquareSet(0b0000_1110 << 56)];
-
         const KING_TARGET: [Square; 2] = [Square::G1, Square::G8];
         const QUEEN_TARGET: [Square; 2] = [Square::C1, Square::C8];
 
-        let king = self.layout.kings[color];
+        let king = self.layout.king(color);
 
-        if self.state.castling.kingside(color) && (occ & KING_MASK[color]).is_empty() {
+        if self.state.castling.pseudo_kingside(color, occ) {
             moves.push(Move::new(king, KING_TARGET[color], MoveFlag::KING_CASTLE));
         }
 
-        if self.state.castling.queenside(color) && (occ & QUEEN_MASK[color]).is_empty() {
+        if self.state.castling.pseudo_queenside(color, occ) {
             moves.push(Move::new(king, QUEEN_TARGET[color], MoveFlag::QUEEN_CASTLE));
         }
     }

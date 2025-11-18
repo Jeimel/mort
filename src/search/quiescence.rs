@@ -32,7 +32,7 @@ pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) 
         alpha = best_score;
     }
 
-    let mut picker = MovePicker::new();
+    let mut picker = MovePicker::new(None);
     let mut legal = 0;
 
     // If we are in check, we have to resolve the threat so the position is not quiet
@@ -51,11 +51,7 @@ pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) 
 
         debug_assert!(-INF < score && score < INF);
 
-        if score <= best_score {
-            continue;
-        }
-
-        best_score = score;
+        best_score = best_score.max(score);
 
         if score <= alpha {
             continue;

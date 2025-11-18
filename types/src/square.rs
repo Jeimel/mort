@@ -7,7 +7,7 @@ use crate::{File, Rank, SquareSet};
 
 #[rustfmt::skip]
 #[repr(u8)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,

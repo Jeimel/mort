@@ -20,7 +20,7 @@ pub fn evaluate(pos: &Position) -> i32 {
 
     for color in [Color::Black, Color::White] {
         for sq in layout.color(color).iter() {
-            let piece = layout.piece_at(sq);
+            let piece = layout.unchecked_at(sq);
 
             let sq = if color == Color::White { sq.flip() } else { sq };
             midgame[color] += MIDGAME_TABLE[piece][sq] + MIDGAME_VALUE[piece];

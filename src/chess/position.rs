@@ -25,7 +25,7 @@ pub struct Position {
 
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\nFen: {}", self.board, self.fen())
+        write!(f, "{}\nFen: {}", self.board, self.fen()?)
     }
 }
 
@@ -41,7 +41,7 @@ impl Position {
         })
     }
 
-    pub fn fen(&self) -> String {
+    pub fn fen(&self) -> Result<String, std::fmt::Error> {
         self.board.fen(self.stm, (self.ply + 2) / 2)
     }
 
@@ -53,13 +53,16 @@ impl Position {
         &self.board.layout
     }
 
-    #[allow(dead_code)]
     pub fn zobrist(&self) -> Key {
         self.board.state.zobrist
     }
 
     pub fn generate<const TYPE: GenerationType>(&self, moves: &mut MoveList) {
         self.board.generate::<TYPE>(moves, self.stm);
+    }
+
+    pub fn pseudo_legal(&self, mov: Move) -> bool {
+        self.board.pseudo_legal(mov, self.stm)
     }
 
     pub fn legal(&self, mov: Move) -> bool {
@@ -76,6 +79,8 @@ impl Position {
     }
 
     pub fn unmake_move(&mut self, mov: Move) {
+        debug_assert!(self.history.len() > 0);
+
         self.stm = !self.stm;
         self.ply -= 1;
 
@@ -88,6 +93,6 @@ impl Position {
     }
 
     pub fn draw(&self) -> bool {
-        self.board.draw() || self.repetition() && self.ply != 0
+        self.board.draw() || (self.repetition() && self.ply != 0)
     }
 }

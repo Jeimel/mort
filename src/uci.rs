@@ -8,11 +8,10 @@ use std::{
 use types::Color;
 
 use crate::{
-    chess::{GenerationType, MoveList, Position},
+    chess::{GenerationType, MoveList, Position, perft},
     error::Error,
     evaluation::evaluate,
-    perft::perft,
-    search::{MAX_DEPTH, SearchLimit, go},
+    search::{MAX_DEPTH, SearchLimit, TranspositionTable, go},
     syntax_error,
 };
 
@@ -36,6 +35,9 @@ fn read() -> Option<String> {
 
 pub fn run() {
     let mut pos = Position::from_fen(START_POS).unwrap();
+    let mut tt = TranspositionTable::new();
+
+    tt.resize(16);
 
     let mut buffer = None;
 
@@ -59,11 +61,13 @@ pub fn run() {
             "position" => {
                 handle_position(&mut pos, commands).unwrap_or_else(|err| eprintln!("{}", err))
             }
-            "ucinewgame" => pos = Position::from_fen(START_POS).unwrap(),
-            "isready" => println!("readyok"),
-            "go" => {
-                handle_go(&pos, commands, &mut buffer).unwrap_or_else(|err| eprintln!("{}", err))
+            "ucinewgame" => {
+                pos = Position::from_fen(START_POS).unwrap();
+                tt.clear();
             }
+            "isready" => println!("readyok"),
+            "go" => handle_go(&pos, &tt, commands, &mut buffer)
+                .unwrap_or_else(|err| eprintln!("{}", err)),
             "d" => println!("{}", pos),
             "eval" => println!("score cp {}", evaluate(&pos)),
             _ => eprintln!("Unknown command: {}", command),
@@ -119,6 +123,7 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
 
 fn handle_go(
     pos: &Position,
+    tt: &TranspositionTable,
     commands: Vec<&str>,
     buffer: &mut Option<String>,
 ) -> Result<(), Error> {
@@ -134,7 +139,7 @@ fn handle_go(
 
     thread::scope(|s| {
         s.spawn(|| {
-            let (_, mov) = go(&pos, &limits, &abort);
+            let (_, mov) = go(&pos, &limits, &tt, &abort);
 
             match mov {
                 Some(mov) => println!("bestmove {}", mov),
@@ -190,7 +195,6 @@ fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<SearchLimit, E
         });
     }
 
-    limits.depth = limits.depth.min(MAX_DEPTH as u16);
     limits.time = left[stm] / 20 + increment[stm] / 2;
 
     Ok(limits)

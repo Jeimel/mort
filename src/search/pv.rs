@@ -7,8 +7,8 @@ use crate::{evaluation::DRAW, search::MAX_DEPTH};
 
 #[derive(Clone)]
 pub struct PrincipalVariation {
-    pub(crate) score: i32,
     pub(crate) line: ArrayVec<Move, MAX_DEPTH>,
+    pub(crate) score: i32,
 }
 
 impl Display for PrincipalVariation {

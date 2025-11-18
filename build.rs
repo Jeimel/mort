@@ -34,7 +34,7 @@ fn write_slider() {
     write_table(&mut table, &BISHOP, bishop_magic_index);
 
     let code = format!(
-        "const SLIDING_MOVES: &[SquareSet; {LOOKUP_TABLE_SIZE}] = &{:?};",
+        "const SLIDING_MOVES: &[types::SquareSet; {LOOKUP_TABLE_SIZE}] = &{:?};",
         table
     );
 
@@ -125,7 +125,7 @@ fn write_squareset() {
     let mut code = String::new();
 
     code.push_str(&format!(
-        "const LINE: &[[SquareSet; 64]; 64] = &{:?};",
+        "pub const LINE: &[[SquareSet; 64]; 64] = &{:?};",
         line
     ));
 

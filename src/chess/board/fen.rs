@@ -49,10 +49,10 @@ impl Board {
         Ok((board, stm, fullmove))
     }
 
-    pub fn fen(&self, stm: Color, fullmove: usize) -> String {
-        format!(
+    pub fn fen(&self, stm: Color, fullmove: usize) -> Result<String, std::fmt::Error> {
+        Ok(format!(
             "{} {} {} {} {} {}",
-            self.layout,
+            self.layout.fen()?,
             char::from(stm),
             self.state.castling,
             if let Some(target) = self.state.en_passant {
@@ -62,7 +62,7 @@ impl Board {
             },
             self.state.rule50_ply,
             fullmove,
-        )
+        ))
     }
 
     fn parse_board(&mut self, fen: &str) -> Result<(), FenParseError> {
@@ -95,16 +95,13 @@ impl Board {
     }
 
     fn parse_castling(&mut self, fen: &str) -> Result<(), FenParseError> {
-        if fen == "-" {
-            return Ok(());
-        }
-
         for c in fen.chars() {
             match c {
                 'K' => self.state.castling.set_kingside(Color::White),
                 'Q' => self.state.castling.set_queenside(Color::White),
                 'k' => self.state.castling.set_kingside(Color::Black),
                 'q' => self.state.castling.set_queenside(Color::Black),
+                '-' if fen.len() == 1 => continue,
                 _ => return Err(format!("Expected 'KQkq' subset or '-', but found {}", c)),
             };
         }
@@ -133,23 +130,14 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::chess::Position;
-
-    const FEN: [&str; 6] = [
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-        "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
-    ];
+    use crate::{FEN, chess::Position};
 
     #[test]
     fn parse() {
         for fen in FEN {
             let pos = Position::from_fen(fen).unwrap();
 
-            assert_eq!(fen, pos.fen());
+            assert_eq!(fen, pos.fen().unwrap());
         }
     }
 }

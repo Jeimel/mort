@@ -1,6 +1,9 @@
-use std::fmt::Display;
+use std::{fmt::Display, num::NonZeroU16};
 
 use crate::{PieceType, Square};
+
+const _: () = assert!(std::mem::size_of::<Move>() == 2);
+const _: () = assert!(std::mem::size_of::<Move>() == std::mem::size_of::<Option<Move>>());
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct MoveFlag(u8);
@@ -36,7 +39,7 @@ impl MoveFlag {
 /// - Bits 6-11: target square
 /// - Bits 12-15: type of move (See: [`MoveFlag`])
 #[derive(Clone, Copy)]
-pub struct Move(u16);
+pub struct Move(NonZeroU16);
 
 impl Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -55,25 +58,26 @@ impl Move {
     const FLAG_OFFSET: u16 = 12;
 
     pub const fn new(start: Square, target: Square, flag: MoveFlag) -> Self {
-        Move(
-            (start as u16) << Self::START_OFFSET
-                | (target as u16) << Self::TARGET_OFFSET
-                | (flag.0 as u16) << Self::FLAG_OFFSET,
-        )
+        let data = (start as u16) << Self::START_OFFSET
+            | (target as u16) << Self::TARGET_OFFSET
+            | (flag.0 as u16) << Self::FLAG_OFFSET;
+
+        // Safety: `start` and `target` can't both be zero at the same time
+        Move(unsafe { NonZeroU16::new_unchecked(data) })
     }
 
     pub fn start(&self) -> Square {
         // Safety: `0b111111` guarantees that the data has a corresponding `Square` variant
-        unsafe { std::mem::transmute((self.0 >> Self::START_OFFSET) as u8 & 0b111111) }
+        unsafe { std::mem::transmute((self.0.get() >> Self::START_OFFSET) as u8 & 0b111111) }
     }
 
     pub fn target(&self) -> Square {
         // Safety: `0b111111` guarantees that the data has a corresponding `Square` variant
-        unsafe { std::mem::transmute((self.0 >> Self::TARGET_OFFSET) as u8 & 0b111111) }
+        unsafe { std::mem::transmute((self.0.get() >> Self::TARGET_OFFSET) as u8 & 0b111111) }
     }
 
     pub fn flag(&self) -> MoveFlag {
         // Safety: `0b1111` guarantees that the data has a corresponding `MoveFlag` variant
-        unsafe { std::mem::transmute((self.0 >> Self::FLAG_OFFSET) as u8 & 0b1111) }
+        unsafe { std::mem::transmute((self.0.get() >> Self::FLAG_OFFSET) as u8 & 0b1111) }
     }
 }

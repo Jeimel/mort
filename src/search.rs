@@ -4,26 +4,34 @@ mod picker;
 mod pv;
 mod quiescence;
 mod thread;
+mod transposition;
 
 pub use limit::SearchLimit;
+pub use transposition::TranspositionTable;
 
-use std::sync::atomic::AtomicBool;
+use std::{iter, sync::atomic::AtomicBool};
 
 use crate::{
-    chess::Position,
-    evaluation::{DRAW, INF, MATE, mate_in, mated_in},
+    chess::{GenerationType, MoveList, Position},
+    evaluation::{DRAW, INF, MATE, mated_in},
     search::{
         picker::MovePicker, pv::PrincipalVariation, quiescence::quiescence, thread::ThreadData,
+        transposition::Bound,
     },
 };
 
 use types::Move;
 
-pub const MAX_DEPTH: usize = 128;
+pub const MAX_DEPTH: usize = 127;
 pub const MAX_PLY: i32 = 128;
 
-pub fn go(pos: &Position, limits: &SearchLimit, abort: &AtomicBool) -> (i32, Option<Move>) {
-    let mut main = ThreadData::new(pos.clone(), limits.clone(), &abort, true);
+pub fn go(
+    pos: &Position,
+    limits: &SearchLimit,
+    tt: &TranspositionTable,
+    abort: &AtomicBool,
+) -> (i32, Option<Move>) {
+    let mut main = ThreadData::new(pos.clone(), limits.clone(), tt.view(), &abort, true);
 
     iterative_deepening(&mut main, limits.depth);
 
@@ -34,8 +42,8 @@ pub fn go(pos: &Position, limits: &SearchLimit, abort: &AtomicBool) -> (i32, Opt
         return (score, mov);
     }
 
-    let mut picker = MovePicker::new();
-    let mov = std::iter::from_fn(|| picker.next(&main.pos)).find(|&mov| main.pos.legal(mov));
+    let mut picker = MovePicker::new(None);
+    let mov = iter::from_fn(|| picker.next(&main.pos)).find(|&mov| main.pos.legal(mov));
 
     (-INF, mov)
 }
@@ -43,7 +51,7 @@ pub fn go(pos: &Position, limits: &SearchLimit, abort: &AtomicBool) -> (i32, Opt
 fn iterative_deepening(thread: &mut ThreadData, max_depth: u16) {
     let mut pv = PrincipalVariation::EMPTY;
 
-    for depth in 1..=max_depth {
+    for depth in 1..=max_depth.min(MAX_DEPTH as u16) {
         alpha_beta(thread, &mut pv, -INF, INF, depth as i32, 0);
 
         // We only consider finished iterations
@@ -57,7 +65,7 @@ fn iterative_deepening(thread: &mut ThreadData, max_depth: u16) {
         thread.info.report();
 
         // We can skip further search if we found a forced mate
-        if thread.info.pv.score.abs() >= MATE {
+        if thread.info.pv.score.abs() > MATE {
             break;
         }
     }
@@ -78,9 +86,9 @@ fn alpha_beta(
         return quiescence(thread, alpha, beta, ply);
     }
 
-    pv.line.clear();
-
     debug_assert!(0 < depth && depth < MAX_PLY);
+
+    pv.line.clear();
 
     // We only check the constraints on the main search thread
     if thread.main() {
@@ -95,12 +103,41 @@ fn alpha_beta(
         }
     }
 
+    let zobrist = thread.pos.zobrist();
+
+    let tt_move = if !root && let Some(entry) = thread.tt.probe(zobrist, ply) {
+        let illegal = entry
+            .mov()
+            .is_some_and(|mov| !thread.pos.pseudo_legal(mov) || !thread.pos.legal(mov));
+
+        if !illegal
+            && entry.depth() >= depth
+            && match entry.bound() {
+                Bound::Exact => true,
+                Bound::Upper => entry.score() <= alpha,
+                Bound::Lower => entry.score() >= beta,
+            }
+        {
+            return entry.score();
+        }
+
+        if illegal { None } else { entry.mov() }
+    } else {
+        None
+    };
+
+    let mut moves = MoveList::new();
+    thread.pos.generate::<{ GenerationType::All }>(&mut moves);
+
     let check = thread.pos.check();
 
-    let mut best_score = -INF;
-    let mut local_pv = PrincipalVariation::EMPTY;
+    let original_alpha = alpha;
 
-    let mut picker = MovePicker::new();
+    let mut best_score = -INF;
+    let mut best_move = None;
+
+    let mut local_pv = PrincipalVariation::EMPTY;
+    let mut picker = MovePicker::new(tt_move);
 
     while let Some(mov) = picker.next(&thread.pos) {
         if !thread.pos.legal(mov) {
@@ -115,15 +152,13 @@ fn alpha_beta(
 
         debug_assert!(-INF < score && score < INF);
 
-        if score <= best_score {
-            continue;
-        }
-
-        best_score = score;
+        best_score = best_score.max(score);
 
         if score <= alpha {
             continue;
         }
+
+        best_move = Some(mov);
 
         pv.collect(mov, score, &local_pv);
 
@@ -137,6 +172,17 @@ fn alpha_beta(
     if best_score == -INF {
         return if check { mated_in(ply) } else { 0 };
     }
+
+    let bound = if best_score >= beta {
+        Bound::Lower
+    } else if best_score > original_alpha {
+        Bound::Exact
+    } else {
+        Bound::Upper
+    };
+
+    #[rustfmt::skip]
+    thread.tt.insert(zobrist, best_move, best_score, depth, bound, ply);
 
     debug_assert!(-INF < best_score && best_score < INF);
 

@@ -5,6 +5,7 @@ use crate::chess::{GenerationType, MoveList, MoveListEntry, PieceLayout, Positio
 // We sort our moves in stages to limit the amount of move generation
 #[derive(PartialEq)]
 enum Stage {
+    TranspositionMove,
     GenerateCaptures,
     YieldCaptures,
     GenerateQuiets,
@@ -14,22 +15,32 @@ enum Stage {
 
 pub struct MovePicker {
     moves: MoveList,
+    tt: Option<Move>,
     stage: Stage,
     index: usize,
     quiet: bool,
 }
 
 impl MovePicker {
-    pub fn new() -> Self {
+    pub fn new(mov: Option<Move>) -> Self {
         Self {
             moves: MoveList::new(),
-            stage: Stage::GenerateCaptures,
+            tt: mov,
+            stage: Stage::TranspositionMove,
             index: 0,
             quiet: true,
         }
     }
 
     pub fn next(&mut self, pos: &Position) -> Option<Move> {
+        if self.stage == Stage::TranspositionMove {
+            self.stage = Stage::GenerateCaptures;
+
+            if self.tt.is_some() {
+                return self.tt;
+            }
+        }
+
         if self.stage == Stage::GenerateCaptures {
             self.stage = Stage::YieldCaptures;
 
@@ -79,9 +90,9 @@ impl MovePicker {
         for entry in moves {
             let (start, target, flag) = (entry.mov.start(), entry.mov.target(), entry.mov.flag());
 
-            let piece = layout.piece_at(start);
+            let piece = layout.unchecked_at(start);
             let capture = match flag {
-                MoveFlag::CAPTURE => layout.piece_at(target),
+                MoveFlag::CAPTURE => layout.unchecked_at(target),
                 MoveFlag::EN_PASSANT => PieceType::Pawn,
                 _ => PieceType::Queen,
             };

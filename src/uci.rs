@@ -11,7 +11,7 @@ use crate::{
     chess::{GenerationType, MoveList, Position, perft},
     error::Error,
     evaluation::evaluate,
-    search::{MAX_DEPTH, SearchLimit, TranspositionTable, go},
+    search::{SearchLimit, TranspositionTable, go},
     syntax_error,
 };
 

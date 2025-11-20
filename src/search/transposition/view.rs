@@ -18,7 +18,7 @@ impl TranspositionView<'_> {
         mut score: i32,
         depth: i32,
         bound: Bound,
-        ply: i32,
+        ply: usize,
     ) {
         let index = self.index(zobrist);
         let entry = TranspositionEntry::from(&self.table[index]);
@@ -32,7 +32,7 @@ impl TranspositionView<'_> {
         }
 
         if score.abs() > MATE {
-            score += score.signum() * ply;
+            score += score.signum() * ply as i32;
         }
 
         let entry = TranspositionEntry {
@@ -46,7 +46,7 @@ impl TranspositionView<'_> {
         self.table[index].store(entry);
     }
 
-    pub fn probe(&self, zobrist: Key, ply: i32) -> Option<TranspositionEntry> {
+    pub fn probe(&self, zobrist: Key, ply: usize) -> Option<TranspositionEntry> {
         let mut entry = TranspositionEntry::from(&self.table[self.index(zobrist)]);
 
         if entry.key == 0 || entry.key != Self::checksum(zobrist) {

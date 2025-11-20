@@ -20,6 +20,7 @@ pub struct Position {
     board: Board,
     stm: Color,
     ply: usize,
+    height: usize,
     history: Vec<GameState>,
 }
 
@@ -37,6 +38,7 @@ impl Position {
             board,
             stm,
             ply: (ply - 1) * 2 + if stm == Color::White { 0 } else { 1 },
+            height: 0,
             history: Vec::new(),
         })
     }
@@ -55,6 +57,14 @@ impl Position {
 
     pub fn zobrist(&self) -> Key {
         self.board.state.zobrist
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    pub fn reset_height(&mut self) {
+        self.height = 0;
     }
 
     pub fn generate<const TYPE: GenerationType>(&self, moves: &mut MoveList) {
@@ -76,6 +86,7 @@ impl Position {
 
         self.stm = !self.stm;
         self.ply += 1;
+        self.height += 1;
     }
 
     pub fn unmake_move(&mut self, mov: Move) {
@@ -83,6 +94,7 @@ impl Position {
 
         self.stm = !self.stm;
         self.ply -= 1;
+        self.height -= 1;
 
         self.board
             .unmake_move(mov, self.stm, self.history.pop().unwrap());

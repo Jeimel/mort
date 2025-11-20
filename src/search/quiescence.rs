@@ -1,11 +1,11 @@
 use crate::{
     evaluation::{DRAW, INF, evaluate, mated_in},
-    search::{MAX_PLY, picker::MovePicker, thread::ThreadData},
+    search::{MAX_DEPTH, picker::MovePicker, thread::ThreadData},
 };
 
-pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) -> i32 {
+pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     debug_assert!(-INF <= alpha && alpha < beta && beta <= INF);
-    debug_assert!(0 <= ply && ply < MAX_PLY);
+    debug_assert!(thread.pos.height() < MAX_DEPTH);
 
     // Again, we only check the constraints on the main search thread
     if thread.main() {
@@ -46,7 +46,7 @@ pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) 
         legal += 1;
 
         thread.pos.make_move(mov);
-        let score = -quiescence(thread, -beta, -alpha, ply + 1);
+        let score = -quiescence(thread, -beta, -alpha);
         thread.pos.unmake_move(mov);
 
         debug_assert!(-INF < score && score < INF);
@@ -67,7 +67,7 @@ pub fn quiescence(thread: &mut ThreadData, mut alpha: i32, beta: i32, ply: i32) 
     thread.info.nodes += legal;
 
     if legal == 0 && check {
-        return mated_in(ply);
+        return mated_in(thread.pos.height());
     }
 
     debug_assert!(-INF < best_score && best_score < INF);

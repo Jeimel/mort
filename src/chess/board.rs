@@ -7,7 +7,7 @@ mod zobrist;
 
 pub use fen::FenParseError;
 pub use layout::PieceLayout;
-pub use movegen::GenerationType;
+pub use movegen::{All, Capture, GenerationType, Quiet};
 pub use zobrist::Key;
 
 use std::fmt::Display;

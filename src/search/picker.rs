@@ -1,6 +1,6 @@
 use types::{Move, MoveFlag, PieceType};
 
-use crate::chess::{GenerationType, MoveList, MoveListEntry, PieceLayout, Position};
+use crate::chess::{Capture, MoveList, MoveListEntry, PieceLayout, Position, Quiet};
 
 // We sort our moves in stages to limit the amount of move generation
 #[derive(PartialEq)]
@@ -44,7 +44,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateCaptures {
             self.stage = Stage::YieldCaptures;
 
-            pos.generate::<{ GenerationType::Capture }>(&mut self.moves);
+            pos.generate::<Capture>(&mut self.moves);
             MovePicker::score_captures(pos.layout(), &mut self.moves[self.index..]);
             self.moves[self.index..].sort_unstable_by(|a, b| b.score.cmp(&a.score));
         }
@@ -65,7 +65,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateQuiets {
             self.stage = Stage::YieldQuiets;
 
-            pos.generate::<{ GenerationType::Quiet }>(&mut self.moves);
+            pos.generate::<Quiet>(&mut self.moves);
         }
 
         if self.stage == Stage::YieldQuiets {

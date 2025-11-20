@@ -13,7 +13,7 @@ pub use transposition::TranspositionTable;
 use std::{iter, sync::atomic::AtomicBool};
 
 use crate::{
-    chess::{GenerationType, MoveList, Position},
+    chess::{All, MoveList, Position},
     evaluation::{DRAW, INF, MATE, mate_in, mated_in},
     search::{
         node::{NodeType, NonPV, PV, Root},
@@ -142,7 +142,7 @@ fn alpha_beta<TYPE: NodeType>(
     };
 
     let mut moves = MoveList::new();
-    thread.pos.generate::<{ GenerationType::All }>(&mut moves);
+    thread.pos.generate::<All>(&mut moves);
 
     let check = thread.pos.check();
 

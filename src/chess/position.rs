@@ -67,7 +67,7 @@ impl Position {
         self.height = 0;
     }
 
-    pub fn generate<const TYPE: GenerationType>(&self, moves: &mut MoveList) {
+    pub fn generate<TYPE: GenerationType>(&self, moves: &mut MoveList) {
         self.board.generate::<TYPE>(moves, self.stm);
     }
 

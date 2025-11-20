@@ -4,7 +4,7 @@ mod movelist;
 mod perft;
 mod position;
 
-pub use board::{FenParseError, GenerationType, Key, PieceLayout};
+pub use board::{All, Capture, FenParseError, Key, PieceLayout, Quiet};
 pub use movelist::{MoveList, MoveListEntry};
 pub use perft::perft;
 pub use position::Position;

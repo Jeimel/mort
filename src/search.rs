@@ -14,7 +14,7 @@ use std::{iter, sync::atomic::AtomicBool};
 
 use crate::{
     chess::{GenerationType, MoveList, Position},
-    evaluation::{DRAW, INF, MATE, mated_in},
+    evaluation::{DRAW, INF, MATE, mate_in, mated_in},
     search::{
         node::{NodeType, NonPV, PV, Root},
         picker::MovePicker,
@@ -82,7 +82,7 @@ fn alpha_beta<TYPE: NodeType>(
     thread: &mut ThreadData,
     pv: &mut PrincipalVariation,
     mut alpha: i32,
-    beta: i32,
+    mut beta: i32,
     depth: i32,
 ) -> i32 {
     debug_assert!(-INF <= alpha && alpha < beta && beta <= INF);
@@ -102,14 +102,22 @@ fn alpha_beta<TYPE: NodeType>(
         thread.check_limits();
     }
 
+    let height = thread.pos.height();
+
     if !TYPE::ROOT {
         if thread.abort() || thread.pos.draw() {
             return DRAW;
         }
+
+        alpha = alpha.max(mated_in(height));
+        beta = beta.min(mate_in(height + 1));
+
+        if alpha >= beta {
+            return alpha;
+        }
     }
 
     let zobrist = thread.pos.zobrist();
-    let height = thread.pos.height();
 
     let tt_move = if let Some(entry) = thread.tt.probe(zobrist, height) {
         let illegal = entry

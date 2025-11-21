@@ -5,6 +5,7 @@ use std::{
 
 use crate::SquareSet;
 
+/// A file on a chessboard.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]
 pub enum File {
@@ -19,8 +20,9 @@ pub enum File {
 }
 
 impl Display for File {
+    #[rustfmt::skip]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let file = match self {
+        write!(f, "{}", match self {
             File::A => 'a',
             File::B => 'b',
             File::C => 'c',
@@ -29,13 +31,12 @@ impl Display for File {
             File::F => 'f',
             File::G => 'g',
             File::H => 'h',
-        };
-
-        write!(f, "{}", file)
+        })
     }
 }
 
 impl File {
+    /// Convert `index` to a [`File`].
     pub const fn new(index: u8) -> Option<Self> {
         if index < 8 {
             // Safety: `index` has a corresponding `File` variant
@@ -45,6 +46,7 @@ impl File {
         }
     }
 
+    /// Shift given [`File`] by `delta`.
     pub const fn try_delta(self, delta: i8) -> Option<Self> {
         let index = self as i8 + delta;
         if index < 0 || index >= 8 {
@@ -54,10 +56,12 @@ impl File {
         Self::new(index as u8)
     }
 
+    /// Get a [`SquareSet`] with all squares on given [`File`] set.
     pub const fn set(self) -> SquareSet {
         SquareSet(0x101010101010101u64 << (self as u8))
     }
 
+    /// Get a [`DoubleEndedIterator`] over all [`File`].
     pub fn iter() -> impl DoubleEndedIterator<Item = Self> {
         (0..8).map(|index| Self::new(index).unwrap())
     }

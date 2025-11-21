@@ -5,6 +5,9 @@ use std::{
 
 use crate::{Color, TypeParseError};
 
+/// A chess piece, representing both [`PieceType`] and [`Color`].
+///
+/// The corresponding [`Color`] is stored as least significant bit.
 #[repr(u8)]
 #[derive(Clone, Copy)]
 pub enum Piece {
@@ -23,6 +26,7 @@ pub enum Piece {
 }
 
 impl Piece {
+    /// Convert `index` to a [`Piece`].
     pub const fn new(index: u8) -> Option<Self> {
         if index < 12 {
             // Safety: `index` has a corresponding `Piece` variant
@@ -32,15 +36,18 @@ impl Piece {
         }
     }
 
+    /// Convert a [`Color`] and a [`PieceType`] to a corresponding [`Piece`].
     pub const fn from(color: Color, piece: PieceType) -> Self {
         // Safety: the types `Color` and `PieceType` form a valid `Piece`
         unsafe { std::mem::transmute(((piece as u8) << 1) | color as u8) }
     }
 
+    /// Get represented [`PieceType`].
     pub const fn typ(self) -> PieceType {
         PieceType::new(self as u8 >> 1).unwrap()
     }
 
+    /// Get represented [`Color`].
     pub const fn color(self) -> Color {
         Color::new(self as u8 & 1).unwrap()
     }
@@ -79,6 +86,7 @@ impl TryFrom<char> for Piece {
     }
 }
 
+/// A chess piece.
 #[repr(u8)]
 #[derive(ConstParamTy, Clone, Copy, Eq, PartialEq)]
 pub enum PieceType {
@@ -91,6 +99,7 @@ pub enum PieceType {
 }
 
 impl PieceType {
+    /// Convert `index` to a [`PieceType`].
     pub const fn new(index: u8) -> Option<Self> {
         if index < 6 {
             // Safety: `index` has a corresponding `PieceType` variant
@@ -100,6 +109,7 @@ impl PieceType {
         }
     }
 
+    /// Get an [`Iterator`] over all [`PieceType`].
     pub fn iter() -> impl Iterator<Item = PieceType> {
         (0..6).map(|index| PieceType::new(index).unwrap())
     }

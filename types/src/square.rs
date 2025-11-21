@@ -5,6 +5,7 @@ use std::{
 
 use crate::{File, Rank, SquareSet};
 
+/// A square on a chessboard.
 #[rustfmt::skip]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]
@@ -26,6 +27,7 @@ impl Display for Square {
 }
 
 impl Square {
+    /// Convert `index` to a [`Square`].
     pub const fn new(index: u8) -> Option<Self> {
         if index < 64 {
             // Safety: `index` has a corresponding `Square` variant
@@ -35,15 +37,14 @@ impl Square {
         }
     }
 
+    /// Convert a [`File`] and a [`Rank`] to a corresponding [`Square`].
     pub const fn from(file: File, rank: Rank) -> Self {
         // Safety: the types `File` and `Rank` form a valid `Square`
         unsafe { std::mem::transmute(rank as u8 * 8 + file as u8) }
     }
 
-    pub fn iter() -> impl Iterator<Item = Self> {
-        (0..64).map(|index| Self::new(index).unwrap())
-    }
-
+    /// Shift given [`Square`] by `delta_file` in [`File`] direction and
+    /// by `delta_rank` in [`Rank`] direction.
     pub const fn try_delta(self, delta_file: i8, delta_rank: i8) -> Option<Self> {
         let file = self.file().try_delta(delta_file);
         let rank = self.rank().try_delta(delta_rank);
@@ -54,20 +55,29 @@ impl Square {
         }
     }
 
+    // Get a [`SquareSet`] with the given [`Square`] set.
     pub const fn set(self) -> SquareSet {
         SquareSet(1u64 << (self as u8))
     }
 
+    /// Get an [`Iterator`] over all [`Square`].
+    pub fn iter() -> impl Iterator<Item = Self> {
+        (0..64).map(|index| Self::new(index).unwrap())
+    }
+
+    /// Get the [`File`] of given [`Square`].
     pub const fn file(self) -> File {
         File::new(self as u8 & 7).unwrap()
     }
 
+    /// Get the [`Rank`] of given [`Square`].
     pub const fn rank(self) -> Rank {
         Rank::new(self as u8 >> 3).unwrap()
     }
 
+    /// Flip the [`Rank`] of given [`Square`].
     pub const fn flip(self) -> Self {
-        Self::new(self as u8 ^ 0b111000).unwrap()
+        Self::new(self as u8 ^ 0b0111_000).unwrap()
     }
 }
 
@@ -76,7 +86,6 @@ impl<T> Index<Square> for [T; 64] {
 
     fn index(&self, index: Square) -> &Self::Output {
         // Safety: `index` is in [0, 64)
-
         unsafe { self.get_unchecked(index as usize) }
     }
 }

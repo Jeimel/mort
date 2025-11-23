@@ -1,17 +1,12 @@
 use types::{Color, Move, MoveFlag, PieceType, Rank, Square, SquareSet};
 
-use crate::chess::{
-    MoveList, attacks,
-    board::{BETWEEN, Board},
+use crate::{
+    chess::{
+        MoveList, attacks,
+        board::{BETWEEN, Board},
+    },
+    push_loop,
 };
-
-macro_rules! push_loop {
-    ($moves:expr, $set:expr, $start:expr, $flag:expr) => {
-        for target in $set.iter() {
-            $moves.push(Move::new($start, target, $flag));
-        }
-    };
-}
 
 pub trait GenerationType {
     const QUIET: bool;
@@ -45,8 +40,6 @@ impl Board {
     pub const DOUBLE_PUSH: [SquareSet; 2] = [Rank::Two.set(), Rank::Seven.set()];
 
     /// Generatae all pseudo-legal moves given the current position.
-    ///
-    /// `QUIET` determines whether to include quiet moves or not
     #[inline(always)]
     pub fn generate<TYPE: GenerationType>(&self, moves: &mut MoveList, color: Color) {
         let checkers = self.state.checkers;

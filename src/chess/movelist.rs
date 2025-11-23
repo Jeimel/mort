@@ -5,6 +5,15 @@ use types::Move;
 
 const MAX_MOVES: usize = 218;
 
+#[macro_export]
+macro_rules! push_loop {
+    ($moves:expr, $set:expr, $start:expr, $flag:expr) => {
+        for target in $set.iter() {
+            $moves.push(Move::new($start, target, $flag));
+        }
+    };
+}
+
 pub struct MoveListEntry {
     pub mov: Move,
     pub score: u16,

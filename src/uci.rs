@@ -84,12 +84,18 @@ fn identify() {
         '\n',
         "id author jeimel",
         '\n',
+        "option name Hash type spin default 16 min 1 max 1024",
+        '\n',
+        "option name Clear Hash type button",
+        '\n',
         "uciok",
     ));
 }
 
 fn handle_option(commands: Vec<&str>, tt: &mut TranspositionTable) -> Result<(), Error> {
     match commands[1..] {
+        ["name", "Hash", "value", x] => tt.resize(ok_or!(x.parse().ok(), "integer", x)),
+        ["name", "Clear", "Hash"] => tt.clear(),
         #[rustfmt::skip]
         _ => return Err(Error::Uci(syntax_error!("name <id> value <x>", commands[1..].join(" ")))),
     };

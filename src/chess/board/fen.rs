@@ -5,16 +5,10 @@ use crate::{
         board::{Board, zobrist},
         position::GameState,
     },
-    syntax_error,
+    ok_or, syntax_error,
 };
 
 use super::layout::PieceLayout;
-
-macro_rules! ok_or {
-    ($result:expr, $expected:expr, $found:expr) => {
-        $result.ok_or_else(|| syntax_error!($expected, $found))?
-    };
-}
 
 pub type FenParseError = String;
 
@@ -31,7 +25,7 @@ impl Board {
         }
 
         let stm = ok_or!(Color::try_from(fields[1]).ok(), "'w' or 'b'", fields[1]);
-        let fullmove = ok_or!(fields[5].parse().ok(), "positive integer", fields[5]);
+        let fullmove = ok_or!(fields[5].parse().ok(), "integer", fields[5]);
 
         if stm == Color::Black {
             board.state.zobrist ^= zobrist::SIDE;
@@ -41,7 +35,7 @@ impl Board {
         board.parse_castling(fields[2])?;
         board.parse_en_passant(fields[3])?;
 
-        board.state.rule50_ply = ok_or!(fields[4].parse().ok(), "positive integer", fields[4]);
+        board.state.rule50_ply = ok_or!(fields[4].parse().ok(), "integer", fields[4]);
 
         board.state.set_blockers(stm, &board.layout);
         board.state.set_checkers(stm, &board.layout);

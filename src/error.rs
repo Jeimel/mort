@@ -11,6 +11,20 @@ macro_rules! syntax_error {
     };
 }
 
+#[macro_export]
+macro_rules! ok_or {
+    ($result:expr, $expected:expr, $found:expr) => {
+        $result.ok_or_else(|| syntax_error!($expected, $found))?
+    };
+}
+
+#[macro_export]
+macro_rules! unwrap_or {
+    ($result:expr) => {
+        $result.unwrap_or_else(|err| eprintln!("{}", err))
+    };
+}
+
 #[derive(Debug)]
 pub enum Error {
     Fen(FenParseError),

@@ -11,11 +11,17 @@ use crate::{
     chess::{All, MoveList, Position, perft},
     error::Error,
     evaluation::evaluate,
+    ok_or,
     search::{SearchLimit, TranspositionTable, go},
-    syntax_error,
+    syntax_error, unwrap_or,
 };
 
 const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+mod default {
+    pub const TT_SIZE: usize = 16;
+    pub const OVERHEAD: u16 = 10;
+}
 
 fn read() -> Option<String> {
     let mut input = String::new();
@@ -36,8 +42,9 @@ fn read() -> Option<String> {
 pub fn run() {
     let mut pos = Position::from_fen(START_POS).unwrap();
     let mut tt = TranspositionTable::new();
+    let mut overhead = default::OVERHEAD;
 
-    tt.resize(16);
+    tt.resize(default::TT_SIZE);
 
     let mut buffer = None;
 
@@ -58,16 +65,14 @@ pub fn run() {
         match command {
             "quit" => process::exit(0),
             "uci" => identify(),
-            "position" => {
-                handle_position(&mut pos, commands).unwrap_or_else(|err| eprintln!("{}", err))
-            }
+            "setoption" => unwrap_or!(handle_option(commands, &mut tt, &mut overhead)),
+            "position" => unwrap_or!(handle_position(&mut pos, commands)),
             "ucinewgame" => {
                 pos = Position::from_fen(START_POS).unwrap();
                 tt.clear();
             }
             "isready" => println!("readyok"),
-            "go" => handle_go(&pos, &tt, commands, &mut buffer)
-                .unwrap_or_else(|err| eprintln!("{}", err)),
+            "go" => unwrap_or!(handle_go(&pos, &tt, overhead, commands, &mut buffer)),
             "d" => println!("{}", pos),
             "eval" => println!("score cp {}", evaluate(&pos)),
             _ => eprintln!("Unknown command: {}", command),
@@ -76,9 +81,35 @@ pub fn run() {
 }
 
 fn identify() {
-    println!("id name mort");
-    println!("id author jeimel");
-    println!("uciok");
+    println!(concat!(
+        "id name mort",
+        '\n',
+        "id author jeimel",
+        '\n',
+        "option name Hash type spin default 16 min 1 max 1024",
+        '\n',
+        "option name Clear Hash type button",
+        '\n',
+        "option name Overhead type spin default 10 min 0 max 5000",
+        '\n',
+        "uciok",
+    ));
+}
+
+fn handle_option(
+    commands: Vec<&str>,
+    tt: &mut TranspositionTable,
+    overhead: &mut u16,
+) -> Result<(), Error> {
+    match commands[1..] {
+        ["name", "Hash", "value", x] => tt.resize(ok_or!(x.parse().ok(), "integer", x)),
+        ["name", "Clear", "Hash"] => tt.clear(),
+        ["name", "Overhead", "value", x] => *overhead = ok_or!(x.parse().ok(), "integer", x),
+        #[rustfmt::skip]
+        _ => return Err(Error::Uci(syntax_error!("name <id> value <x>", commands[1..].join(" ")))),
+    };
+
+    Ok(())
 }
 
 fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error> {
@@ -124,12 +155,13 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
 fn handle_go(
     pos: &Position,
     tt: &TranspositionTable,
+    overhead: u16,
     commands: Vec<&str>,
     buffer: &mut Option<String>,
 ) -> Result<(), Error> {
     let abort = AtomicBool::new(false);
 
-    let limits = handle_limits(&mut commands.iter(), pos.stm())?;
+    let limits = handle_limits(&mut commands.iter(), pos.stm(), overhead)?;
 
     if limits.perft != 0 {
         perft::<true>(&mut pos.clone(), limits.perft);
@@ -153,7 +185,11 @@ fn handle_go(
     })
 }
 
-fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<SearchLimit, Error> {
+fn handle_limits(
+    commands: &mut Iter<&str>,
+    stm: Color,
+    overhead: u16,
+) -> Result<SearchLimit, Error> {
     macro_rules! parse {
         (match ($commands:expr, $key:ident) { $($value:literal => $var:expr),* $(,)? }) => {
             match *$key {
@@ -195,7 +231,10 @@ fn handle_limits(commands: &mut Iter<&str>, stm: Color) -> Result<SearchLimit, E
         });
     }
 
-    limits.time = left[stm] / 20 + increment[stm] / 2;
+    // We want to have a search time greater than zero
+    limits.time = (left[stm] / 20 + increment[stm] / 2)
+        .saturating_sub(u128::from(overhead))
+        .max(1);
 
     Ok(limits)
 }

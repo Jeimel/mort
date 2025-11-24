@@ -38,17 +38,23 @@ impl Display for Castling {
 }
 
 impl Castling {
+    /// Empty [`Castling`].
     pub const EMPTY: Self = Self(0);
 
+    /// Internal bitmasks for kingside rights by [`Color`].
     const KING_MASK: [u8; 2] = [0b0001, 0b0010];
+    /// Internal bitmasks for queenside rights by [`Color`].
     const QUEEN_MASK: [u8; 2] = [0b0100, 0b1000];
 
+    /// Combined masks for both sides by [`Color`].
     const COLOR_MASK: [u8; 2] = [0b0101, 0b1010];
 
+    /// Returns `true` if the given [`Color`] has no remaining castling rights.
     pub fn is_empty(&self, color: Color) -> bool {
         self.0 & Self::COLOR_MASK[color] == 0
     }
 
+    /// Removes castling rights based on `start` and `target`.
     pub fn remove(&mut self, start: Square, target: Square) {
         // We can return early if both sides can't castle anymore
         if (self.0 & (Self::COLOR_MASK[Color::White] | Self::COLOR_MASK[Color::Black])) == 0 {
@@ -58,42 +64,51 @@ impl Castling {
         self.0 &= Self::mask(start) & Self::mask(target);
     }
 
+    /// Returns `true` if the given [`Color`] retains kingside castling rights.
     pub fn kingside(&self, color: Color) -> bool {
         self.is_set(Self::KING_MASK[color])
     }
 
+    /// Returns `true` if the given [`Color`] retains queenside castling rights.
     pub fn queenside(&self, color: Color) -> bool {
         self.is_set(Self::QUEEN_MASK[color])
     }
 
+    /// Grants kingside castling rights to the given [`Color`].
     pub fn set_kingside(&mut self, color: Color) {
         self.set(Self::KING_MASK[color]);
     }
 
+    /// Grants queenside castling rights to the given [`Color`].
     pub fn set_queenside(&mut self, color: Color) {
         self.set(Self::QUEEN_MASK[color]);
     }
 
+    /// Returns `true` if kingside castling is pseudo-legal for the given [`Color`].
     pub fn pseudo_kingside(&self, color: Color, occ: SquareSet) -> bool {
         const OCC: [SquareSet; 2] = [SquareSet(0b0110_0000), SquareSet(0b0110_0000 << 56)];
 
         self.kingside(color) && (occ & OCC[color]).is_empty()
     }
 
+    /// Returns `true` if queenside castling is pseudo-legal for the given [`Color`].
     pub fn pseudo_queenside(&self, color: Color, occ: SquareSet) -> bool {
         const OCC: [SquareSet; 2] = [SquareSet(0b0000_1110), SquareSet(0b0000_1110 << 56)];
 
         self.queenside(color) && (occ & OCC[color]).is_empty()
     }
 
+    /// Internal helper for checking castling-right flags.
     fn is_set(&self, mask: u8) -> bool {
         self.0 & mask != 0
     }
 
+    /// Internal helper for mutating the castling bitfield.
     fn set(&mut self, mask: u8) {
         self.0 |= mask;
     }
 
+    /// Computes the mask to apply when a piece on `sq` moves or is captured.
     fn mask(sq: Square) -> u8 {
         const RELEVANT: SquareSet = SquareSet(10448351135499550865);
 

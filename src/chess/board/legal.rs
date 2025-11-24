@@ -122,7 +122,7 @@ impl Board {
 mod tests {
     use crate::{
         FEN,
-        chess::{GenerationType, MoveList, Position},
+        chess::{All, MoveList, Position},
     };
 
     #[test]
@@ -131,7 +131,7 @@ mod tests {
             let pos = Position::from_fen(fen).unwrap();
 
             let mut moves = MoveList::new();
-            pos.generate::<{ GenerationType::All }>(&mut moves);
+            pos.generate::<All>(&mut moves);
 
             assert!(moves.iter().all(|mov| pos.pseudo_legal(mov)));
         }

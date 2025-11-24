@@ -2,6 +2,7 @@ use std::ops::{Index, IndexMut, Not};
 
 use crate::TypeParseError;
 
+/// A side to move.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]
 pub enum Color {
@@ -10,6 +11,7 @@ pub enum Color {
 }
 
 impl Color {
+    /// Convert `index` to a [`Color`].
     pub const fn new(index: u8) -> Option<Self> {
         if index < 2 {
             // Safety: `index` has a corresponding `Color` variant

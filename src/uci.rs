@@ -8,7 +8,7 @@ use std::{
 use types::Color;
 
 use crate::{
-    chess::{GenerationType, MoveList, Position, perft},
+    chess::{All, MoveList, Position, perft},
     error::Error,
     evaluation::evaluate,
     search::{SearchLimit, TranspositionTable, go},
@@ -110,7 +110,7 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
     // We already skipped the "moves" token earlier, so we can directly play the moves if any
     while let Some(str) = commands.next() {
         let mut moves = MoveList::new();
-        pos.generate::<{ GenerationType::All }>(&mut moves);
+        pos.generate::<All>(&mut moves);
 
         match moves.iter().find(|mov| &format!("{}", mov) == *str) {
             Some(mov) => pos.make_move(mov),

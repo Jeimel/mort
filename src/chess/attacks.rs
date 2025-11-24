@@ -1,6 +1,6 @@
 use types::{
     Color, File, PieceType, Square, SquareSet,
-    slider::magic::{bishop_magic_index, rook_magic_index},
+    magic::{bishop_magic_index, rook_magic_index},
 };
 
 include!(concat!(env!("OUT_DIR"), "/sliding_moves.rs"));

@@ -1,14 +1,21 @@
+//! Implementation of **black magic bitboards** for fast sliding piece move generation.
+//!
+//! Magics are taken from <https://talkchess.com/forum/viewtopic.php?t=64790&start=10>
+
 use crate::{Square, SquareSet, slider::BISHOP, slider::ROOK};
 
-// Magics are taken from https://talkchess.com/forum/viewtopic.php?t=64790&start=10
-
+/// Represents a single entry in the magic bitboard table for a square.
 pub struct BlackMagicEntry {
+    /// [`Square`] that are irrelevant for computing attacks.
     neg_mask: SquareSet,
+    /// Magic number used for hashing blockers.
     magic: u64,
+    /// Offset into the precomputed table.
     offset: u32,
 }
 
 impl BlackMagicEntry {
+    /// Empty [`BlackMagicEntry`].
     const EMPTY: BlackMagicEntry = BlackMagicEntry {
         neg_mask: SquareSet::EMPTY,
         magic: 0,
@@ -16,6 +23,7 @@ impl BlackMagicEntry {
     };
 }
 
+/// Computes the magic table index for a sliding piece given a square and blockers.
 fn magic_index(
     magics: &[BlackMagicEntry; 64],
     shift: u8,
@@ -28,14 +36,17 @@ fn magic_index(
     entry.offset as usize + (hash >> shift) as usize
 }
 
+/// Returns the magic bitboard index for a rook at `sq` given the current `blockers`.
 pub fn rook_magic_index(sq: Square, blockers: SquareSet) -> usize {
     magic_index(ROOK_MAGICS, ROOK_SHIFT, sq, blockers)
 }
 
+/// Returns the magic bitboard index for a bishop at `sq` given the current `blockers`.
 pub fn bishop_magic_index(sq: Square, blockers: SquareSet) -> usize {
     magic_index(BISHOP_MAGICS, BISHOP_SHIFT, sq, blockers)
 }
 
+/// Generates an array of [`BlackMagicEntry`] for a slider piece.
 macro_rules! gen_entries {
     ($slider:ident, $magics:expr) => {{
         let (magics, mut entries, mut i) = ($magics, [BlackMagicEntry::EMPTY; 64], 0);
@@ -57,12 +68,16 @@ macro_rules! gen_entries {
     }};
 }
 
+/// The total size of the precomputed move lookup table for all sliding pieces.
 pub const LOOKUP_TABLE_SIZE: usize = 87988;
 
+/// Number of bits to shift the magic hash for rooks.
 const ROOK_SHIFT: u8 = 64 - 12;
 
+/// Number of bits to shift the magic hash for bishops.
 const BISHOP_SHIFT: u8 = 64 - 9;
 
+/// Precomputed [`BlackMagicEntry`] for all 64 [`Square`] for rooks.
 const ROOK_MAGICS: &[BlackMagicEntry; 64] = &gen_entries!(
     ROOK,
     [
@@ -133,6 +148,7 @@ const ROOK_MAGICS: &[BlackMagicEntry; 64] = &gen_entries!(
     ]
 );
 
+/// Precomputed [`BlackMagicEntry`] for all 64 [`Square`] for bishops.
 const BISHOP_MAGICS: &[BlackMagicEntry; 64] = &gen_entries!(
     BISHOP,
     [

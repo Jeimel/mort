@@ -1,11 +1,8 @@
 use std::{env, fs, path::Path};
 
 use types::{
-    File, Rank, Square, SquareSet, const_for,
-    slider::{
-        BISHOP, ROOK, Slider,
-        magic::{LOOKUP_TABLE_SIZE, bishop_magic_index, rook_magic_index},
-    },
+    BISHOP, File, ROOK, Rank, Slider, Square, SquareSet, const_for,
+    magic::{LOOKUP_TABLE_SIZE, bishop_magic_index, rook_magic_index},
 };
 
 fn write(file: &str, code: &String) {

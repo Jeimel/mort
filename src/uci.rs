@@ -11,11 +11,16 @@ use crate::{
     chess::{All, MoveList, Position, perft},
     error::Error,
     evaluation::evaluate,
+    ok_or,
     search::{SearchLimit, TranspositionTable, go},
-    syntax_error,
+    syntax_error, unwrap_or,
 };
 
 const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+mod default {
+    pub const TT_SIZE: usize = 16;
+}
 
 fn read() -> Option<String> {
     let mut input = String::new();
@@ -37,7 +42,7 @@ pub fn run() {
     let mut pos = Position::from_fen(START_POS).unwrap();
     let mut tt = TranspositionTable::new();
 
-    tt.resize(16);
+    tt.resize(default::TT_SIZE);
 
     let mut buffer = None;
 
@@ -58,16 +63,14 @@ pub fn run() {
         match command {
             "quit" => process::exit(0),
             "uci" => identify(),
-            "position" => {
-                handle_position(&mut pos, commands).unwrap_or_else(|err| eprintln!("{}", err))
-            }
+            "setoption" => unwrap_or!(handle_option(commands, &mut tt)),
+            "position" => unwrap_or!(handle_position(&mut pos, commands)),
             "ucinewgame" => {
                 pos = Position::from_fen(START_POS).unwrap();
                 tt.clear();
             }
             "isready" => println!("readyok"),
-            "go" => handle_go(&pos, &tt, commands, &mut buffer)
-                .unwrap_or_else(|err| eprintln!("{}", err)),
+            "go" => unwrap_or!(handle_go(&pos, &tt, commands, &mut buffer)),
             "d" => println!("{}", pos),
             "eval" => println!("score cp {}", evaluate(&pos)),
             _ => eprintln!("Unknown command: {}", command),
@@ -76,9 +79,22 @@ pub fn run() {
 }
 
 fn identify() {
-    println!("id name mort");
-    println!("id author jeimel");
-    println!("uciok");
+    println!(concat!(
+        "id name mort",
+        '\n',
+        "id author jeimel",
+        '\n',
+        "uciok",
+    ));
+}
+
+fn handle_option(commands: Vec<&str>, tt: &mut TranspositionTable) -> Result<(), Error> {
+    match commands[1..] {
+        #[rustfmt::skip]
+        _ => return Err(Error::Uci(syntax_error!("name <id> value <x>", commands[1..].join(" ")))),
+    };
+
+    Ok(())
 }
 
 fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error> {

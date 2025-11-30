@@ -63,7 +63,7 @@ pub fn go(
 
     main.pos.reset_height();
 
-    iterative_deepening(&mut main, limits.depth);
+    iterative_deepening(&mut main, limits.depth as i32);
 
     let score = main.info.pv.score;
     let mov = main.info.pv.line.first().copied();
@@ -78,11 +78,11 @@ pub fn go(
     (-INF, mov)
 }
 
-fn iterative_deepening(thread: &mut ThreadData, max_depth: u16) {
+fn iterative_deepening(thread: &mut ThreadData, max_depth: i32) {
     let mut pv = PrincipalVariation::EMPTY;
 
-    for depth in 1..=max_depth.min(MAX_DEPTH as u16) {
-        pvs::<Root>(thread, &mut pv, -INF, INF, depth as i32);
+    for depth in 1..=max_depth.min(MAX_PLY) {
+        pvs::<Root>(thread, &mut pv, -INF, INF, depth);
 
         // We only consider finished iterations
         if thread.abort() {

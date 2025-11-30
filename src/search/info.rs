@@ -5,7 +5,7 @@ use crate::search::PrincipalVariation;
 pub struct SearchInfo {
     pub start: Instant,
     pub nodes: u64,
-    pub completed: u16,
+    pub completed: i32,
     pub pv: PrincipalVariation,
 }
 

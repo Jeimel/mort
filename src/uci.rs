@@ -82,7 +82,8 @@ pub fn run() {
 
 fn identify() {
     println!(concat!(
-        "id name mort",
+        "id name mort-",
+        env!("CARGO_PKG_VERSION"),
         '\n',
         "id author jeimel",
         '\n',

@@ -1,10 +1,9 @@
-mod info;
 mod limit;
 mod picker;
 mod pv;
 mod quiescence;
-mod thread;
 mod transposition;
+mod worker;
 
 pub use limit::SearchLimit;
 pub use transposition::TranspositionTable;
@@ -18,7 +17,7 @@ use crate::{
         picker::MovePicker,
         pv::{PrincipalVariation, pvs},
         quiescence::quiescence,
-        thread::ThreadData,
+        worker::Worker,
     },
 };
 
@@ -59,14 +58,13 @@ pub fn go(
     tt: &TranspositionTable,
     abort: &AtomicBool,
 ) -> (i32, Option<Move>) {
-    let mut main = ThreadData::new(pos.clone(), limits.clone(), tt.view(), &abort, true);
+    let mut main = Worker::new(pos.clone(), tt.view(), limits.clone(), &abort, true);
 
     main.pos.reset_height();
 
-    iterative_deepening(&mut main, limits.depth);
+    iterative_deepening(&mut main, limits.depth as i32);
 
-    let score = main.info.pv.score;
-    let mov = main.info.pv.line.first().copied();
+    let (score, mov) = main.result();
 
     if mov.is_some() {
         return (score, mov);
@@ -78,24 +76,22 @@ pub fn go(
     (-INF, mov)
 }
 
-fn iterative_deepening(thread: &mut ThreadData, max_depth: u16) {
+fn iterative_deepening(worker: &mut Worker, max_depth: i32) {
     let mut pv = PrincipalVariation::EMPTY;
 
-    for depth in 1..=max_depth.min(MAX_DEPTH as u16) {
-        pvs::<Root>(thread, &mut pv, -INF, INF, depth as i32);
+    for depth in 1..=max_depth.min(MAX_PLY) {
+        let score = pvs::<Root>(worker, &mut pv, -INF, INF, depth);
 
         // We only consider finished iterations
-        if thread.abort() {
+        if worker.abort() {
             break;
         }
 
-        thread.info.pv = pv.clone();
-        thread.info.completed = depth;
-
-        thread.info.report();
+        worker.update_pv(&pv);
+        worker.report();
 
         // We can skip further search if we found a forced mate
-        if thread.info.pv.score.abs() > MATE {
+        if score.abs() > MATE {
             break;
         }
     }

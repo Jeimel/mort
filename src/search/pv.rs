@@ -8,14 +8,14 @@ use crate::{
     evaluation::{DRAW, INF, mate_in, mated_in},
     search::{
         MAX_DEPTH, MAX_PLY, NodeType, NonPV, PV, picker::MovePicker, quiescence,
-        thread::ThreadData, transposition::Bound,
+        transposition::Bound, worker::Worker,
     },
 };
 
 #[derive(Clone)]
 pub struct PrincipalVariation {
-    pub(crate) line: ArrayVec<Move, MAX_DEPTH>,
-    pub(crate) score: i32,
+    line: ArrayVec<Move, MAX_DEPTH>,
+    score: i32,
 }
 
 impl Display for PrincipalVariation {
@@ -34,6 +34,14 @@ impl PrincipalVariation {
         line: ArrayVec::new_const(),
     };
 
+    pub fn result(&self) -> (i32, Option<Move>) {
+        (self.score, self.line.first().copied())
+    }
+
+    pub fn score(&self) -> i32 {
+        self.score
+    }
+
     pub fn collect(&mut self, mov: Move, score: i32, other: &Self) {
         self.score = score;
 
@@ -46,18 +54,18 @@ impl PrincipalVariation {
 }
 
 pub fn pvs<TYPE: NodeType>(
-    thread: &mut ThreadData,
+    worker: &mut Worker,
     pv: &mut PrincipalVariation,
     mut alpha: i32,
     mut beta: i32,
     depth: i32,
 ) -> i32 {
     debug_assert!(-INF <= alpha && alpha < beta && beta <= INF);
-    debug_assert!(thread.pos.height() < MAX_DEPTH);
+    debug_assert!(worker.pos.height() < MAX_DEPTH);
     debug_assert!(TYPE::PV || (alpha == beta - 1));
 
     if depth <= 0 {
-        return quiescence(thread, alpha, beta);
+        return quiescence(worker, alpha, beta);
     }
 
     debug_assert!(0 < depth && depth < MAX_PLY);
@@ -65,14 +73,14 @@ pub fn pvs<TYPE: NodeType>(
     pv.line.clear();
 
     // We only check the constraints on the main search thread
-    if thread.main() {
-        thread.check_limits();
+    if worker.main() {
+        worker.check_limits();
     }
 
-    let height = thread.pos.height();
+    let height = worker.pos.height();
 
     if !TYPE::ROOT {
-        if thread.abort() || thread.pos.draw() {
+        if worker.abort() || worker.pos.draw() {
             return DRAW;
         }
 
@@ -84,12 +92,12 @@ pub fn pvs<TYPE: NodeType>(
         }
     }
 
-    let zobrist = thread.pos.zobrist();
+    let zobrist = worker.pos.zobrist();
 
-    let tt_move = if let Some(entry) = thread.tt.probe(zobrist, height) {
+    let tt_move = if let Some(entry) = worker.tt.probe(zobrist, height) {
         let illegal = entry
             .mov()
-            .is_some_and(|mov| !thread.pos.pseudo_legal(mov) || !thread.pos.legal(mov));
+            .is_some_and(|mov| !worker.pos.pseudo_legal(mov) || !worker.pos.legal(mov));
 
         if !TYPE::PV
             && !illegal
@@ -109,9 +117,9 @@ pub fn pvs<TYPE: NodeType>(
     };
 
     let mut moves = MoveList::new();
-    thread.pos.generate::<All>(&mut moves);
+    worker.pos.generate::<All>(&mut moves);
 
-    let check = thread.pos.check();
+    let check = worker.pos.check();
 
     let original_alpha = alpha;
 
@@ -124,24 +132,24 @@ pub fn pvs<TYPE: NodeType>(
     let mut score = best_score;
     let mut legal = 0;
 
-    while let Some(mov) = picker.next(&thread.pos) {
-        if !thread.pos.legal(mov) {
+    while let Some(mov) = picker.next(&worker.pos) {
+        if !worker.pos.legal(mov) {
             continue;
         }
 
         legal += 1;
 
-        thread.pos.make_move(mov);
+        worker.pos.make_move(mov);
 
         if !TYPE::PV || legal > 1 {
-            score = -pvs::<NonPV>(thread, &mut local_pv, -(alpha + 1), -alpha, depth - 1);
+            score = -pvs::<NonPV>(worker, &mut local_pv, -(alpha + 1), -alpha, depth - 1);
         }
 
         if TYPE::PV && (legal == 1 || score > alpha) {
-            score = -pvs::<PV>(thread, &mut local_pv, -beta, -alpha, depth - 1);
+            score = -pvs::<PV>(worker, &mut local_pv, -beta, -alpha, depth - 1);
         }
 
-        thread.pos.unmake_move(mov);
+        worker.pos.unmake_move(mov);
 
         debug_assert!(-INF < score && score < INF);
 
@@ -164,7 +172,7 @@ pub fn pvs<TYPE: NodeType>(
         alpha = score;
     }
 
-    thread.info.nodes += legal;
+    worker.update_nodes(legal);
 
     if legal == 0 {
         return if check { mated_in(height) } else { 0 };
@@ -179,7 +187,7 @@ pub fn pvs<TYPE: NodeType>(
     };
 
     #[rustfmt::skip]
-    thread.tt.insert(zobrist, best_move, best_score, depth, bound, height);
+    worker.tt.insert(zobrist, best_move, best_score, depth, bound, height);
 
     debug_assert!(-INF < best_score && best_score < INF);
 

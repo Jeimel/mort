@@ -1,4 +1,4 @@
-use crate::search::{MAX_DEPTH, info::SearchInfo};
+use crate::search::MAX_DEPTH;
 
 #[derive(Clone)]
 pub struct SearchLimit {
@@ -16,7 +16,7 @@ impl SearchLimit {
         time: u128::MAX,
     };
 
-    pub fn check(&self, data: &SearchInfo) -> bool {
-        data.start.elapsed().as_millis() > self.time || data.nodes > self.nodes
+    pub fn check(&self, elapsed: u128, nodes: u64) -> bool {
+        elapsed > self.time || nodes > self.nodes
     }
 }

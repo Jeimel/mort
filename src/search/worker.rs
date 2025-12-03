@@ -5,7 +5,7 @@ use crate::{
     search::{SearchLimit, info::SearchInfo, transposition::TranspositionView},
 };
 
-pub struct ThreadData<'a> {
+pub struct Worker<'a> {
     pub pos: Position,
     pub info: SearchInfo,
     limits: SearchLimit,
@@ -14,7 +14,7 @@ pub struct ThreadData<'a> {
     main: bool,
 }
 
-impl<'a> ThreadData<'a> {
+impl<'a> Worker<'a> {
     pub fn new(
         pos: Position,
         limits: SearchLimit,

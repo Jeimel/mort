@@ -14,8 +14,8 @@ use crate::{
 
 #[derive(Clone)]
 pub struct PrincipalVariation {
-    pub(crate) line: ArrayVec<Move, MAX_DEPTH>,
-    pub(crate) score: i32,
+    line: ArrayVec<Move, MAX_DEPTH>,
+    score: i32,
 }
 
 impl Display for PrincipalVariation {
@@ -33,6 +33,14 @@ impl PrincipalVariation {
         score: DRAW,
         line: ArrayVec::new_const(),
     };
+
+    pub fn result(&self) -> (i32, Option<Move>) {
+        (self.score, self.line.first().copied())
+    }
+
+    pub fn score(&self) -> i32 {
+        self.score
+    }
 
     pub fn collect(&mut self, mov: Move, score: i32, other: &Self) {
         self.score = score;

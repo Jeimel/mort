@@ -34,7 +34,10 @@ impl Info {
     fn report(&self) {
         println!(
             "info depth {} score cp {} nodes {} pv {}",
-            self.completed, self.pv.score, self.nodes, self.pv
+            self.completed,
+            self.pv.score(),
+            self.nodes,
+            self.pv
         )
     }
 }
@@ -42,8 +45,8 @@ impl Info {
 pub struct Worker<'a> {
     pub pos: Position,
     pub tt: TranspositionView<'a>,
-    info: Info,
     limits: SearchLimit,
+    info: Info,
     abort: &'a AtomicBool,
     main: bool,
 }
@@ -51,16 +54,16 @@ pub struct Worker<'a> {
 impl<'a> Worker<'a> {
     pub fn new(
         pos: Position,
-        limits: SearchLimit,
         tt: TranspositionView<'a>,
+        limits: SearchLimit,
         abort: &'a AtomicBool,
         main: bool,
     ) -> Self {
         Self {
             pos,
-            info: Info::new(),
-            limits,
             tt,
+            limits,
+            info: Info::new(),
             abort,
             main,
         }
@@ -93,6 +96,6 @@ impl<'a> Worker<'a> {
     }
 
     pub fn result(&self) -> (i32, Option<Move>) {
-        (self.info.pv.score, self.info.pv.line.first().copied())
+        self.info.pv.result()
     }
 }

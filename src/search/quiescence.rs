@@ -64,7 +64,7 @@ pub fn quiescence(worker: &mut Worker, mut alpha: i32, beta: i32) -> i32 {
         alpha = score;
     }
 
-    worker.info.nodes += legal;
+    worker.update_nodes(legal);
 
     if legal == 0 && check {
         return mated_in(worker.pos.height());

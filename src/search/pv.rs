@@ -164,7 +164,7 @@ pub fn pvs<TYPE: NodeType>(
         alpha = score;
     }
 
-    worker.info.nodes += legal;
+    worker.update_nodes(legal);
 
     if legal == 0 {
         return if check { mated_in(height) } else { 0 };

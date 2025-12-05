@@ -113,7 +113,7 @@ impl Board {
         self.toggle::<true>(start, color, piece);
 
         // Determine which piece must be placed on the target square
-        let piece = match flag.promotion_piece() {
+        let piece = match flag.piece() {
             // We promote our piece
             Some(piece) => {
                 debug_assert!(matches!(piece, Knight | Bishop | Rook | Queen));
@@ -175,7 +175,7 @@ impl Board {
             _ => {}
         };
 
-        let piece = match flag.promotion_piece() {
+        let piece = match flag.piece() {
             Some(_) => {
                 debug_assert!(matches!(piece, Knight | Bishop | Rook | Queen));
                 Pawn

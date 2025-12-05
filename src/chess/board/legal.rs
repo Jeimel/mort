@@ -66,7 +66,7 @@ impl Board {
         }
 
         // On capture, our pawn can only attack `target` squares based on `start`
-        if flag == MoveFlag::CAPTURE || flag.promotion_piece().is_some() {
+        if flag == MoveFlag::CAPTURE || flag.piece().is_some() {
             return attacks::pawn(color, start).is_set(target);
         }
 

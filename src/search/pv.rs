@@ -121,8 +121,6 @@ pub fn pvs<TYPE: NodeType>(
 
     let check = worker.pos.check();
 
-    let original_alpha = alpha;
-
     let mut best_score = -INF;
     let mut best_move = None;
 
@@ -160,16 +158,17 @@ pub fn pvs<TYPE: NodeType>(
         }
 
         best_move = Some(mov);
+        alpha = score;
 
         if TYPE::PV {
             pv.collect(mov, score, &local_pv);
         }
 
-        if score >= beta {
-            break;
+        if alpha < beta {
+            continue;
         }
 
-        alpha = score;
+        break;
     }
 
     worker.update_nodes(legal);
@@ -180,7 +179,7 @@ pub fn pvs<TYPE: NodeType>(
 
     let bound = if best_score >= beta {
         Bound::Lower
-    } else if best_score > original_alpha {
+    } else if TYPE::PV && best_move.is_some() {
         Bound::Exact
     } else {
         Bound::Upper

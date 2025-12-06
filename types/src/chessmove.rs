@@ -117,4 +117,9 @@ impl Move {
         let flag = self.flag();
         matches!(flag, MoveFlag::CAPTURE | MoveFlag::EN_PASSANT) || flag.promotion()
     }
+
+    /// Returns the internal bits of this [`Move`].
+    pub const fn inner(&self) -> u16 {
+        self.0.get()
+    }
 }

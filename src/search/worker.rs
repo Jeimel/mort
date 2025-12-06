@@ -7,7 +7,10 @@ use types::Move;
 
 use crate::{
     chess::Position,
-    search::{SearchLimit, pv::PrincipalVariation, transposition::TranspositionView},
+    search::{
+        SearchLimit, history::ButterflyHistory, pv::PrincipalVariation,
+        transposition::TranspositionView,
+    },
 };
 
 struct Info {
@@ -43,8 +46,9 @@ impl Info {
 }
 
 pub struct Worker<'a> {
-    pub pos: Position,
-    pub tt: TranspositionView<'a>,
+    pub(super) pos: Position,
+    pub(super) tt: TranspositionView<'a>,
+    pub(super) history: ButterflyHistory,
     limits: SearchLimit,
     info: Info,
     abort: &'a AtomicBool,
@@ -62,6 +66,7 @@ impl<'a> Worker<'a> {
         Self {
             pos,
             tt,
+            history: ButterflyHistory::EMPTY,
             limits,
             info: Info::new(),
             abort,

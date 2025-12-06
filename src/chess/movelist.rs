@@ -16,7 +16,7 @@ macro_rules! push_loop {
 
 pub struct MoveListEntry {
     pub mov: Move,
-    pub score: u16,
+    pub score: i16,
 }
 
 pub struct MoveList {

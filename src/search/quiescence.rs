@@ -38,7 +38,7 @@ pub fn quiescence(worker: &mut Worker, mut alpha: i32, beta: i32) -> i32 {
     // If we are in check, we have to resolve the threat so the position is not quiet
     picker.set_quiet(check);
 
-    while let Some(mov) = picker.next(&worker.pos) {
+    while let Some(mov) = picker.next(worker) {
         if !worker.pos.legal(mov) {
             continue;
         }

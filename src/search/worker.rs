@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     sync::atomic::{AtomicBool, Ordering},
     time::Instant,
 };
@@ -16,8 +17,19 @@ use crate::{
 struct Info {
     start: Instant,
     nodes: u64,
-    completed: i32,
     pv: PrincipalVariation,
+}
+
+impl Display for Info {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "score cp {} nodes {} pv {}",
+            self.pv.score(),
+            self.nodes,
+            self.pv
+        )
+    }
 }
 
 impl Info {
@@ -25,23 +37,12 @@ impl Info {
         Self {
             start: Instant::now(),
             nodes: 0,
-            completed: 0,
             pv: PrincipalVariation::EMPTY,
         }
     }
 
     fn elapsed(&self) -> u128 {
         self.start.elapsed().as_millis()
-    }
-
-    fn report(&self) {
-        println!(
-            "info depth {} score cp {} nodes {} pv {}",
-            self.completed,
-            self.pv.score(),
-            self.nodes,
-            self.pv
-        )
     }
 }
 
@@ -96,8 +97,8 @@ impl<'a> Worker<'a> {
         self.info.pv = pv.clone();
     }
 
-    pub fn report(&self) {
-        self.info.report();
+    pub fn report(&self, depth: i32) {
+        println!("info depth {} {}", depth, self.info);
     }
 
     pub fn result(&self) -> (i32, Option<Move>) {

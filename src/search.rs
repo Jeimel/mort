@@ -89,7 +89,7 @@ fn iterative_deepening(worker: &mut Worker, max_depth: i32) {
         }
 
         worker.update_pv(&pv);
-        worker.report();
+        worker.report(depth);
 
         // We can skip further search if we found a forced mate
         if score.abs() > MATE {

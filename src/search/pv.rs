@@ -94,13 +94,12 @@ pub fn pvs<TYPE: NodeType>(
 
     let zobrist = worker.pos.zobrist();
 
-    let tt_move = if let Some(entry) = worker.tt.probe(zobrist, height) {
-        let illegal = entry
+    let tt_move = if let Some(entry) = worker.tt.probe(zobrist, height)
+        && !entry
             .mov()
-            .is_some_and(|mov| !worker.pos.pseudo_legal(mov) || !worker.pos.legal(mov));
-
+            .is_some_and(|mov| !worker.pos.pseudo_legal(mov) || !worker.pos.legal(mov))
+    {
         if !TYPE::PV
-            && !illegal
             && entry.depth() >= depth
             && match entry.bound() {
                 Bound::Exact => true,
@@ -111,7 +110,7 @@ pub fn pvs<TYPE: NodeType>(
             return entry.score();
         }
 
-        if illegal { None } else { entry.mov() }
+        entry.mov()
     } else {
         None
     };
@@ -120,8 +119,6 @@ pub fn pvs<TYPE: NodeType>(
     worker.pos.generate::<All>(&mut moves);
 
     let check = worker.pos.check();
-
-    let original_alpha = alpha;
 
     let mut best_score = -INF;
     let mut best_move = None;
@@ -132,7 +129,7 @@ pub fn pvs<TYPE: NodeType>(
     let mut score = best_score;
     let mut legal = 0;
 
-    while let Some(mov) = picker.next(&worker.pos) {
+    while let Some(mov) = picker.next(worker) {
         if !worker.pos.legal(mov) {
             continue;
         }
@@ -160,16 +157,17 @@ pub fn pvs<TYPE: NodeType>(
         }
 
         best_move = Some(mov);
+        alpha = score;
 
         if TYPE::PV {
             pv.collect(mov, score, &local_pv);
         }
 
-        if score >= beta {
-            break;
+        if alpha < beta {
+            continue;
         }
 
-        alpha = score;
+        break;
     }
 
     worker.update_nodes(legal);
@@ -178,9 +176,15 @@ pub fn pvs<TYPE: NodeType>(
         return if check { mated_in(height) } else { 0 };
     }
 
+    if let Some(mov) = best_move
+        && !mov.tactical()
+    {
+        worker.update_quiet_history(mov, depth as i16);
+    }
+
     let bound = if best_score >= beta {
         Bound::Lower
-    } else if best_score > original_alpha {
+    } else if TYPE::PV && best_move.is_some() {
         Bound::Exact
     } else {
         Bound::Upper

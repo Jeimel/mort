@@ -130,13 +130,13 @@ impl Board {
             let promo = (set & Self::DOUBLE_PUSH[!color]).rotate(Self::PAWN_ROTATION[color]) - occ;
 
             // We consider both quiet and capture promotions for queens in quiescence search
-            let promo_flag = MoveFlag::promotion(PieceType::Queen);
+            let promo_flag = MoveFlag::new_promotion(PieceType::Queen);
             push_loop!(moves, promo & target, start, promo_flag);
             push_loop!(moves, promo_captures & target, start, promo_flag);
 
             // We have to generate each possible piece and target square combination
             for piece in [PieceType::Rook, PieceType::Bishop, PieceType::Knight] {
-                let flag = MoveFlag::promotion(piece);
+                let flag = MoveFlag::new_promotion(piece);
 
                 if TYPE::CAPTURE {
                     push_loop!(moves, promo_captures & target, start, flag);

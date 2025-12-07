@@ -36,13 +36,18 @@ impl MoveFlag {
     const PROMOTION_PIECE: u8 = 0b0111;
 
     /// Constructs a promotion [`MoveFlag`] corresponding to the given [`PieceType`].
-    pub fn promotion(piece: PieceType) -> Self {
+    pub fn new_promotion(piece: PieceType) -> Self {
         Self(Self::PROMOTION | piece as u8)
     }
 
-    /// Returns the promoted [`PieceType`] if this flag represents a promotion.
-    pub fn promotion_piece(self) -> Option<PieceType> {
-        if self.0 & Self::PROMOTION == 0 {
+    /// Returns `true` if this [`MoveFlag`] represents a promotion.
+    pub fn promotion(&self) -> bool {
+        self.0 & Self::PROMOTION != 0
+    }
+
+    /// Returns the promoted [`PieceType`] if this [`MoveFlag`] represents a promotion.
+    pub fn piece(self) -> Option<PieceType> {
+        if !self.promotion() {
             return None;
         }
 
@@ -61,7 +66,7 @@ pub struct Move(NonZeroU16);
 
 impl Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let flag = match self.flag().promotion_piece() {
+        let flag = match self.flag().piece() {
             Some(piece) => String::from(char::from(piece)),
             None => String::new(),
         };
@@ -104,5 +109,17 @@ impl Move {
     pub fn flag(&self) -> MoveFlag {
         // Safety: `0b1111` guarantees that the data has a corresponding `MoveFlag` variant
         unsafe { std::mem::transmute((self.0.get() >> Self::FLAG_OFFSET) as u8 & 0b1111) }
+    }
+
+    /// Returns `true` if this [`Move`] is tactical, which means
+    /// it is a capture or promotion.
+    pub fn tactical(&self) -> bool {
+        let flag = self.flag();
+        matches!(flag, MoveFlag::CAPTURE | MoveFlag::EN_PASSANT) || flag.promotion()
+    }
+
+    /// Returns the internal bits of this [`Move`].
+    pub const fn inner(&self) -> u16 {
+        self.0.get()
     }
 }

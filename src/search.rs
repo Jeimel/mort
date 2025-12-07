@@ -1,3 +1,4 @@
+mod history;
 mod limit;
 mod picker;
 mod pv;
@@ -71,7 +72,7 @@ pub fn go(
     }
 
     let mut picker = MovePicker::new(None);
-    let mov = iter::from_fn(|| picker.next(&main.pos)).find(|&mov| main.pos.legal(mov));
+    let mov = iter::from_fn(|| picker.next(&main)).find(|&mov| main.pos.legal(mov));
 
     (-INF, mov)
 }
@@ -88,7 +89,7 @@ fn iterative_deepening(worker: &mut Worker, max_depth: i32) {
         }
 
         worker.update_pv(&pv);
-        worker.report();
+        worker.report(depth);
 
         // We can skip further search if we found a forced mate
         if score.abs() > MATE {

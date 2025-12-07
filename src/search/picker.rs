@@ -1,6 +1,9 @@
 use types::{Move, MoveFlag, PieceType};
 
-use crate::chess::{Capture, MoveList, MoveListEntry, PieceLayout, Position, Quiet};
+use crate::{
+    chess::{Capture, GenerationType, MoveList, MoveListEntry, PieceLayout, Quiet},
+    search::worker::Worker,
+};
 
 // We sort our moves in stages to limit the amount of move generation
 #[derive(PartialEq)]
@@ -32,7 +35,7 @@ impl MovePicker {
         }
     }
 
-    pub fn next(&mut self, pos: &Position) -> Option<Move> {
+    pub fn next(&mut self, worker: &Worker) -> Option<Move> {
         if self.stage == Stage::TranspositionMove {
             self.stage = Stage::GenerateCaptures;
 
@@ -44,9 +47,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateCaptures {
             self.stage = Stage::YieldCaptures;
 
-            pos.generate::<Capture>(&mut self.moves);
-            MovePicker::score_captures(pos.layout(), &mut self.moves[self.index..]);
-            self.moves[self.index..].sort_unstable_by(|a, b| b.score.cmp(&a.score));
+            self.extend::<Capture>(&worker);
         }
 
         if self.stage == Stage::YieldCaptures {
@@ -65,7 +66,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateQuiets {
             self.stage = Stage::YieldQuiets;
 
-            pos.generate::<Quiet>(&mut self.moves);
+            self.extend::<Quiet>(&worker);
         }
 
         if self.stage == Stage::YieldQuiets {
@@ -85,7 +86,7 @@ impl MovePicker {
     }
 
     fn score_captures(layout: &PieceLayout, moves: &mut [MoveListEntry]) {
-        const VALUE: [u16; 6] = [1, 2, 3, 4, 5, 6];
+        const VALUE: [i16; 6] = [1, 2, 3, 4, 5, 6];
 
         for entry in moves {
             let (start, target, flag) = (entry.mov.start(), entry.mov.target(), entry.mov.flag());
@@ -101,5 +102,27 @@ impl MovePicker {
 
             entry.score = 100 * VALUE[capture] - VALUE[piece];
         }
+    }
+
+    fn score_quiets(worker: &Worker, moves: &mut [MoveListEntry]) {
+        let us = worker.pos.stm();
+
+        for entry in moves {
+            entry.score = worker.history[us][entry.mov];
+        }
+    }
+
+    fn extend<TYPE: GenerationType>(&mut self, worker: &Worker) {
+        if TYPE::CAPTURE && !TYPE::QUIET {
+            worker.pos.generate::<Capture>(&mut self.moves);
+            MovePicker::score_captures(worker.pos.layout(), &mut self.moves[self.index..]);
+        }
+
+        if !TYPE::CAPTURE && TYPE::QUIET {
+            worker.pos.generate::<Quiet>(&mut self.moves);
+            MovePicker::score_quiets(worker, &mut self.moves[self.index..]);
+        }
+
+        self.moves[self.index..].sort_unstable_by(|a, b| b.score.cmp(&a.score));
     }
 }

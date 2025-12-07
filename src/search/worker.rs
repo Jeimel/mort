@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     sync::atomic::{AtomicBool, Ordering},
     time::Instant,
 };
@@ -7,34 +8,23 @@ use types::Move;
 
 use crate::{
     chess::Position,
-    search::{SearchLimit, pv::PrincipalVariation, transposition::TranspositionView},
+    search::{
+        SearchLimit, history::ButterflyHistory, pv::PrincipalVariation,
+        transposition::TranspositionView,
+    },
 };
 
 struct Info {
     start: Instant,
     nodes: u64,
-    completed: i32,
     pv: PrincipalVariation,
 }
 
-impl Info {
-    fn new() -> Self {
-        Self {
-            start: Instant::now(),
-            nodes: 0,
-            completed: 0,
-            pv: PrincipalVariation::EMPTY,
-        }
-    }
-
-    fn elapsed(&self) -> u128 {
-        self.start.elapsed().as_millis()
-    }
-
-    fn report(&self) {
-        println!(
-            "info depth {} score cp {} nodes {} pv {}",
-            self.completed,
+impl Display for Info {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "score cp {} nodes {} pv {}",
             self.pv.score(),
             self.nodes,
             self.pv
@@ -42,9 +32,24 @@ impl Info {
     }
 }
 
+impl Info {
+    fn new() -> Self {
+        Self {
+            start: Instant::now(),
+            nodes: 0,
+            pv: PrincipalVariation::EMPTY,
+        }
+    }
+
+    fn elapsed(&self) -> u128 {
+        self.start.elapsed().as_millis()
+    }
+}
+
 pub struct Worker<'a> {
-    pub pos: Position,
-    pub tt: TranspositionView<'a>,
+    pub(super) pos: Position,
+    pub(super) tt: TranspositionView<'a>,
+    pub(super) history: ButterflyHistory,
     limits: SearchLimit,
     info: Info,
     abort: &'a AtomicBool,
@@ -62,6 +67,7 @@ impl<'a> Worker<'a> {
         Self {
             pos,
             tt,
+            history: ButterflyHistory::EMPTY,
             limits,
             info: Info::new(),
             abort,
@@ -91,8 +97,8 @@ impl<'a> Worker<'a> {
         self.info.pv = pv.clone();
     }
 
-    pub fn report(&self) {
-        self.info.report();
+    pub fn report(&self, depth: i32) {
+        println!("info depth {} {}", depth, self.info);
     }
 
     pub fn result(&self) -> (i32, Option<Move>) {

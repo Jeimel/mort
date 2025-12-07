@@ -1,7 +1,7 @@
 use types::{Move, MoveFlag, PieceType};
 
 use crate::{
-    chess::{Capture, MoveList, MoveListEntry, PieceLayout, Quiet},
+    chess::{Capture, GenerationType, MoveList, MoveListEntry, PieceLayout, Quiet},
     search::worker::Worker,
 };
 
@@ -47,10 +47,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateCaptures {
             self.stage = Stage::YieldCaptures;
 
-            worker.pos.generate::<Capture>(&mut self.moves);
-            MovePicker::score_captures(worker.pos.layout(), &mut self.moves[self.index..]);
-
-            self.sort();
+            self.extend::<Capture>(&worker);
         }
 
         if self.stage == Stage::YieldCaptures {
@@ -69,10 +66,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateQuiets {
             self.stage = Stage::YieldQuiets;
 
-            worker.pos.generate::<Quiet>(&mut self.moves);
-            MovePicker::score_quiets(worker, &mut self.moves[self.index..]);
-
-            self.sort();
+            self.extend::<Quiet>(&worker);
         }
 
         if self.stage == Stage::YieldQuiets {
@@ -118,7 +112,17 @@ impl MovePicker {
         }
     }
 
-    fn sort(&mut self) {
+    fn extend<TYPE: GenerationType>(&mut self, worker: &Worker) {
+        if TYPE::CAPTURE && !TYPE::QUIET {
+            worker.pos.generate::<Capture>(&mut self.moves);
+            MovePicker::score_captures(worker.pos.layout(), &mut self.moves[self.index..]);
+        }
+
+        if !TYPE::CAPTURE && TYPE::QUIET {
+            worker.pos.generate::<Quiet>(&mut self.moves);
+            MovePicker::score_quiets(worker, &mut self.moves[self.index..]);
+        }
+
         self.moves[self.index..].sort_unstable_by(|a, b| b.score.cmp(&a.score));
     }
 }

@@ -93,27 +93,25 @@ pub fn pvs<TYPE: NodeType>(
     }
 
     let zobrist = worker.pos.zobrist();
+    let entry = worker.tt.probe(zobrist, height);
 
-    let tt_move = if let Some(entry) = worker.tt.probe(zobrist, height)
-        && !entry
-            .mov()
-            .is_some_and(|mov| !worker.pos.pseudo_legal(mov) || !worker.pos.legal(mov))
-    {
-        if !TYPE::PV
-            && entry.depth() >= depth
-            && match entry.bound() {
-                Bound::Exact => true,
-                Bound::Upper => entry.score() <= alpha,
-                Bound::Lower => entry.score() >= beta,
-            }
-        {
-            return entry.score();
+    #[rustfmt::skip]
+    let tt_move = entry.as_ref().and_then(|entry| {
+        entry.mov().filter(|mov| worker.pos.pseudo_legal(*mov) && worker.pos.legal(*mov))
+    });
+
+    if let Some(entry) = entry
+        && !TYPE::PV
+        && tt_move.is_some()
+        && entry.depth() >= depth
+        && match entry.bound() {
+            Bound::Exact => true,
+            Bound::Upper => entry.score() <= alpha,
+            Bound::Lower => entry.score() >= beta,
         }
-
-        entry.mov()
-    } else {
-        None
-    };
+    {
+        return entry.score();
+    }
 
     let mut moves = MoveList::new();
     worker.pos.generate::<All>(&mut moves);
@@ -163,11 +161,9 @@ pub fn pvs<TYPE: NodeType>(
             pv.collect(mov, score, &local_pv);
         }
 
-        if alpha < beta {
-            continue;
+        if alpha >= beta {
+            break;
         }
-
-        break;
     }
 
     worker.update_nodes(legal);

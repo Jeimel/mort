@@ -94,24 +94,24 @@ pub fn pvs<TYPE: NodeType>(
     }
 
     let zobrist = worker.pos.zobrist();
-    let entry = worker.tt.probe(zobrist, height);
+    let tt_hit = worker.tt.probe(zobrist, height);
 
     #[rustfmt::skip]
-    let tt_move = entry.as_ref().and_then(|entry| {
-        entry.mov().filter(|mov| worker.pos.pseudo_legal(*mov) && worker.pos.legal(*mov))
+    let tt_move = tt_hit.as_ref().and_then(|entry| {
+        entry.mov().filter(|mov| !(!worker.pos.pseudo_legal(*mov) || !worker.pos.legal(*mov)))
     });
 
-    if let Some(entry) = entry
+    if let Some(tt_hit) = tt_hit
         && !TYPE::PV
         && tt_move.is_some()
-        && entry.depth() >= depth
-        && match entry.bound() {
+        && tt_hit.depth() >= depth
+        && match tt_hit.bound() {
             Bound::Exact => true,
-            Bound::Upper => entry.score() <= alpha,
-            Bound::Lower => entry.score() >= beta,
+            Bound::Upper => tt_hit.score() <= alpha,
+            Bound::Lower => tt_hit.score() >= beta,
         }
     {
-        return entry.score();
+        return tt_hit.score();
     }
 
     let mut moves = MoveList::new();

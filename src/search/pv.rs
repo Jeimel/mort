@@ -58,7 +58,8 @@ pub fn pvs<TYPE: NodeType>(
     pv: &mut PrincipalVariation,
     mut alpha: i32,
     mut beta: i32,
-    depth: i32,
+    mut depth: i32,
+    cut: bool,
 ) -> i32 {
     debug_assert!(-INF <= alpha && alpha < beta && beta <= INF);
     debug_assert!(worker.pos.height() < MAX_DEPTH);
@@ -137,11 +138,11 @@ pub fn pvs<TYPE: NodeType>(
         worker.pos.make_move(mov);
 
         if !TYPE::PV || legal > 1 {
-            score = -pvs::<NonPV>(worker, &mut local_pv, -(alpha + 1), -alpha, depth - 1);
+            score = -pvs::<NonPV>(worker, &mut local_pv, -(alpha + 1), -alpha, depth - 1, !cut);
         }
 
         if TYPE::PV && (legal == 1 || score > alpha) {
-            score = -pvs::<PV>(worker, &mut local_pv, -beta, -alpha, depth - 1);
+            score = -pvs::<PV>(worker, &mut local_pv, -beta, -alpha, depth - 1, false);
         }
 
         worker.pos.unmake_move(mov);

@@ -21,9 +21,9 @@ impl SquareSet {
         (self.0 & sq.set().0) != 0
     }
 
-    /// Returns `true` if this [`SquareSet`] contains zero or one square.
-    pub fn is_less_two(&self) -> bool {
-        self.reset_lsb().is_empty()
+    /// Returns `true` if this [`SquareSet`] contains more than one [`Square`].
+    pub fn many(&self) -> bool {
+        !self.reset_lsb().is_empty()
     }
 
     /// Toggles given [`Square`] in this [`SquareSet`].

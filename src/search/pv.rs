@@ -58,12 +58,13 @@ pub fn pvs<TYPE: NodeType>(
     pv: &mut PrincipalVariation,
     mut alpha: i32,
     mut beta: i32,
-    mut depth: i32,
+    depth: i32,
     cut: bool,
 ) -> i32 {
     debug_assert!(-INF <= alpha && alpha < beta && beta <= INF);
     debug_assert!(worker.pos.height() < MAX_DEPTH);
     debug_assert!(TYPE::PV || (alpha == beta - 1));
+    debug_assert!(!(TYPE::PV && cut));
 
     if depth <= 0 {
         return quiescence(worker, alpha, beta);
@@ -96,10 +97,9 @@ pub fn pvs<TYPE: NodeType>(
     let zobrist = worker.pos.zobrist();
     let tt_hit = worker.tt.probe(zobrist, height);
 
-    #[rustfmt::skip]
-    let tt_move = tt_hit.as_ref().and_then(|entry| {
-        entry.mov().filter(|mov| !(!worker.pos.pseudo_legal(*mov) || !worker.pos.legal(*mov)))
-    });
+    let tt_move = tt_hit
+        .as_ref()
+        .and_then(|entry| entry.mov().filter(|mov| worker.pos.pseudo_legal(*mov)));
 
     if let Some(tt_hit) = tt_hit
         && !TYPE::PV
@@ -110,6 +110,7 @@ pub fn pvs<TYPE: NodeType>(
             Bound::Upper => tt_hit.score() <= alpha,
             Bound::Lower => tt_hit.score() >= beta,
         }
+        && worker.pos.legal(tt_hit.mov().unwrap())
     {
         return tt_hit.score();
     }

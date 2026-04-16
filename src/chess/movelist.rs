@@ -1,7 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use arrayvec::ArrayVec;
-use types::Move;
+use types::{ArrayVec, Move};
 
 const MAX_MOVES: usize = 218;
 
@@ -14,6 +13,7 @@ macro_rules! push_loop {
     };
 }
 
+#[derive(Clone, Copy)]
 pub struct MoveListEntry {
     pub mov: Move,
     pub score: i16,

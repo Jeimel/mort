@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
-use arrayvec::ArrayVec;
-use types::Move;
+use types::{ArrayVec, Move};
 
 use crate::{
     chess::{All, MoveList},
@@ -20,7 +19,7 @@ pub struct PrincipalVariation {
 
 impl Display for PrincipalVariation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for mov in &self.line {
+        for mov in self.line.iter() {
             write!(f, "{} ", mov)?;
         }
 
@@ -31,7 +30,7 @@ impl Display for PrincipalVariation {
 impl PrincipalVariation {
     pub const EMPTY: Self = Self {
         score: DRAW,
-        line: ArrayVec::new_const(),
+        line: ArrayVec::new(),
     };
 
     pub fn result(&self) -> (i32, Option<Move>) {
@@ -47,9 +46,7 @@ impl PrincipalVariation {
 
         self.line.clear();
         self.line.push(mov);
-        self.line
-            .try_extend_from_slice(&other.line)
-            .expect("PV can't be longer than `MAX_DEPTH`");
+        self.line.extend(&other.line);
     }
 }
 

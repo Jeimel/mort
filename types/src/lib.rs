@@ -5,6 +5,7 @@
 
 #![feature(adt_const_params)]
 
+mod arrayvec;
 mod castling;
 mod chessmove;
 mod color;
@@ -16,6 +17,7 @@ mod slider;
 mod square;
 mod squareset;
 
+pub use arrayvec::ArrayVec;
 pub use castling::Castling;
 pub use chessmove::{Move, MoveFlag};
 pub use color::Color;

@@ -56,10 +56,12 @@ pub fn pvs<TYPE: NodeType>(
     mut alpha: i32,
     mut beta: i32,
     depth: i32,
+    cut: bool,
 ) -> i32 {
     debug_assert!(-INF <= alpha && alpha < beta && beta <= INF);
     debug_assert!(worker.pos.height() < MAX_DEPTH);
     debug_assert!(TYPE::PV || (alpha == beta - 1));
+    debug_assert!(!(TYPE::PV && cut));
 
     if depth <= 0 {
         return quiescence(worker, alpha, beta);
@@ -90,27 +92,25 @@ pub fn pvs<TYPE: NodeType>(
     }
 
     let zobrist = worker.pos.zobrist();
+    let tt_hit = worker.tt.probe(zobrist, height);
 
-    let tt_move = if let Some(entry) = worker.tt.probe(zobrist, height)
-        && !entry
-            .mov()
-            .is_some_and(|mov| !worker.pos.pseudo_legal(mov) || !worker.pos.legal(mov))
-    {
-        if !TYPE::PV
-            && entry.depth() >= depth
-            && match entry.bound() {
-                Bound::Exact => true,
-                Bound::Upper => entry.score() <= alpha,
-                Bound::Lower => entry.score() >= beta,
-            }
-        {
-            return entry.score();
+    let tt_move = tt_hit
+        .as_ref()
+        .and_then(|entry| entry.mov().filter(|mov| worker.pos.pseudo_legal(*mov)));
+
+    if let Some(tt_hit) = tt_hit
+        && !TYPE::PV
+        && tt_move.is_some()
+        && tt_hit.depth() >= depth
+        && match tt_hit.bound() {
+            Bound::Exact => true,
+            Bound::Upper => tt_hit.score() <= alpha,
+            Bound::Lower => tt_hit.score() >= beta,
         }
-
-        entry.mov()
-    } else {
-        None
-    };
+        && worker.pos.legal(tt_hit.mov().unwrap())
+    {
+        return tt_hit.score();
+    }
 
     let mut moves = MoveList::new();
     worker.pos.generate::<All>(&mut moves);
@@ -136,11 +136,11 @@ pub fn pvs<TYPE: NodeType>(
         worker.pos.make_move(mov);
 
         if !TYPE::PV || legal > 1 {
-            score = -pvs::<NonPV>(worker, &mut local_pv, -(alpha + 1), -alpha, depth - 1);
+            score = -pvs::<NonPV>(worker, &mut local_pv, -(alpha + 1), -alpha, depth - 1, !cut);
         }
 
         if TYPE::PV && (legal == 1 || score > alpha) {
-            score = -pvs::<PV>(worker, &mut local_pv, -beta, -alpha, depth - 1);
+            score = -pvs::<PV>(worker, &mut local_pv, -beta, -alpha, depth - 1, false);
         }
 
         worker.pos.unmake_move(mov);
@@ -160,11 +160,9 @@ pub fn pvs<TYPE: NodeType>(
             pv.collect(mov, score, &local_pv);
         }
 
-        if alpha < beta {
-            continue;
+        if alpha >= beta {
+            break;
         }
-
-        break;
     }
 
     worker.update_nodes(legal);

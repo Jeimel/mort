@@ -60,13 +60,14 @@ impl Board {
         }
 
         self.state.en_passant = None;
-        self.state.rule50_ply += 1;
         self.state.capture = None;
 
         // The fifty move counter is resetted on a pawn move
-        if piece == PieceType::Pawn {
-            self.state.rule50_ply = 0;
-        }
+        self.state.rule50_ply = if piece != PieceType::Pawn {
+            self.state.rule50_ply + 1
+        } else {
+            0
+        };
 
         self.state.zobrist ^= zobrist::CASTLING[self.state.castling];
         self.state.castling.remove(start, target);

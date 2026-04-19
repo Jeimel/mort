@@ -81,7 +81,7 @@ fn iterative_deepening(worker: &mut Worker, max_depth: i32) {
     let mut pv = PrincipalVariation::EMPTY;
 
     for depth in 1..=max_depth.min(MAX_PLY) {
-        let score = pvs::<Root>(worker, &mut pv, -INF, INF, depth);
+        let score = pvs::<Root>(worker, &mut pv, -INF, INF, depth, false);
 
         // We only consider finished iterations
         if worker.abort() {

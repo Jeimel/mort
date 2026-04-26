@@ -1,31 +1,20 @@
 use types::const_for;
 
-use crate::rng::XorShiftState;
+use crate::util::XorShiftState;
 
 pub type Key = u64;
 
 const VALUES: ([[[Key; 64]; 6]; 2], [Key; 8], [Key; 16], Key) = {
-    let mut rng = XorShiftState::new(1070372);
+    const SEED: u64 = 1070372;
 
-    let (mut piece, mut en_passant, mut castling) = ([[[0; 64]; 6]; 2], [0; 8], [0; 16]);
+    let mut rng = XorShiftState::new(SEED);
+    let mut zobrist = [0; 64 * 12 + 8 + 16 + 1];
 
-    const_for!(let mut i = 0; i < 2; i += 1; {
-        const_for!(let mut j = 0; j < 6; j += 1; {
-            const_for!(let mut k = 0; k < 64; k += 1; {
-                (rng.state, piece[i][j][k]) = rng.next();
-            });
-        });
+    const_for!(let mut i = 0; i < zobrist.len(); i += 1; {
+        (rng.state, zobrist[i]) = rng.next();
     });
 
-    const_for!(let mut i = 0; i < 8; i += 1; {
-        (rng.state, en_passant[i]) = rng.next();
-    });
-
-    const_for!(let mut i = 0; i < 16; i += 1; {
-        (rng.state, castling[i]) = rng.next();
-    });
-
-    (piece, en_passant, castling, rng.next().1)
+    unsafe { std::mem::transmute(zobrist) }
 };
 
 pub const PIECE: &[[[Key; 64]; 6]; 2] = &VALUES.0;

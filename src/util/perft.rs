@@ -35,10 +35,7 @@ pub fn perft<const ROOT: bool>(pos: &mut Position, depth: u16) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        FEN,
-        chess::{Position, perft},
-    };
+    use crate::{FEN, chess::Position, util::perft};
 
     const EXPECTED: [(usize, u16); 6] = [
         (119060324, 6),
@@ -51,7 +48,7 @@ mod tests {
 
     #[test]
     fn movegen() {
-        for (fen, (nodes, depth)) in FEN.iter().zip(EXPECTED) {
+        for (fen, (nodes, depth)) in FEN[..6].iter().zip(EXPECTED) {
             let mut pos = Position::from_fen(fen).unwrap();
             assert_eq!(nodes, perft::<false>(&mut pos, depth));
         }

@@ -8,12 +8,13 @@ use std::{
 use types::Color;
 
 use crate::{
-    chess::{All, MoveList, Position, perft},
+    chess::{All, MoveList, Position},
     error::Error,
     evaluation::evaluate,
     ok_or,
     search::{SearchLimit, TranspositionTable, go},
     syntax_error, unwrap_or,
+    util::perft,
 };
 
 const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

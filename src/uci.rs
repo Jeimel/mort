@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     io, process,
     slice::Iter,
     sync::atomic::{AtomicBool, Ordering},
@@ -14,7 +15,7 @@ use crate::{
     ok_or,
     search::{SearchLimit, TranspositionTable, go},
     syntax_error, unwrap_or,
-    util::perft,
+    util::{bench, perft},
 };
 
 const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -40,22 +41,18 @@ fn read() -> Option<String> {
     Some(input)
 }
 
-pub fn run() {
+pub fn run(mut buffer: VecDeque<String>) {
     let mut pos = Position::from_fen(START_POS).unwrap();
     let mut tt = TranspositionTable::new();
     let mut overhead = default::OVERHEAD;
 
     tt.resize(default::TT_SIZE);
 
-    let mut buffer = None;
-
     loop {
-        let input = match buffer.clone().or_else(read) {
+        let input = match buffer.pop_front().or_else(read) {
             Some(input) => input,
             None => continue,
         };
-
-        buffer = None;
 
         let commands: Vec<_> = input.split_ascii_whitespace().collect();
         let command = match commands.first() {
@@ -74,6 +71,7 @@ pub fn run() {
             }
             "isready" => println!("readyok"),
             "go" => unwrap_or!(handle_go(&pos, &tt, overhead, commands, &mut buffer)),
+            "bench" => bench(&tt, commands),
             "d" => println!("{}", pos),
             "eval" => println!("score cp {}", evaluate(&pos)),
             _ => eprintln!("Unknown command: {}", command),
@@ -159,7 +157,7 @@ fn handle_go(
     tt: &TranspositionTable,
     overhead: u16,
     commands: Vec<&str>,
-    buffer: &mut Option<String>,
+    buffer: &mut VecDeque<String>,
 ) -> Result<(), Error> {
     let abort = AtomicBool::new(false);
 
@@ -181,7 +179,9 @@ fn handle_go(
             };
         });
 
-        *buffer = handle_search_input(&abort);
+        if let Some(arg) = handle_search_input(&abort) {
+            buffer.push_back(arg);
+        }
 
         Ok(())
     })

@@ -8,7 +8,8 @@ mod uci;
 mod util;
 
 fn main() {
-    uci::run();
+    let buffer = std::env::args().skip(1).collect();
+    uci::run(buffer);
 }
 
 const FEN: [&str; 6] = [

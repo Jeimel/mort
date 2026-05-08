@@ -3,15 +3,15 @@
 mod chess;
 mod error;
 mod evaluation;
-mod rng;
 mod search;
 mod uci;
+mod util;
 
 fn main() {
-    uci::run();
+    let buffer = std::env::args().skip(1).collect();
+    uci::run(buffer);
 }
 
-#[cfg(test)]
 const FEN: [&str; 6] = [
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",

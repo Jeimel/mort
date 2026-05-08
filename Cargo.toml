@@ -2,6 +2,17 @@
 name = "mort"
 version = "0.1.0"
 edition = "2024"
+publish = false
+
+[profile.dev]
+opt-level = 3
+debug = true
+debug-assertions = true
+
+[profile.release]
+lto = true
+panic = "abort"
+codegen-units = 1
 
 [dependencies]
 types = { path = "./types" }

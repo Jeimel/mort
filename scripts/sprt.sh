@@ -2,6 +2,8 @@
 
 set -e
 
+NAME=mort
+
 REPO_URL=$(git remote get-url origin)
 REPO_NAME=$(basename -s .git "$REPO_URL")
 CLONE_DIR="./cutechess/$REPO_NAME"
@@ -14,13 +16,12 @@ else
     git clone --branch main "$REPO_URL" "$CLONE_DIR"
 fi
 
-BIN_NAME=$(grep -m1 '^name' Cargo.toml | cut -d'"' -f2)
-
-cargo build --release --manifest-path "$CLONE_DIR/Cargo.toml"
+make build
+make -C "$CLONE_DIR" build
 
 ./cutechess/cutechess-cli \
-    -engine name=$1 cmd=target/release/mort \
-    -engine name=baseline cmd="$CLONE_DIR/target/release/$BIN_NAME" \
+    -engine name=$1 cmd=target/release/$NAME \
+    -engine name=baseline cmd="$CLONE_DIR/target/release/$NAME" \
     -each proto=uci tc=10+0.1 \
     -games 2 \
     -rounds 5000 \

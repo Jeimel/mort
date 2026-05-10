@@ -1,12 +1,12 @@
 mod history;
-mod limit;
 mod picker;
 mod pv;
 mod quiescence;
+mod time;
 mod transposition;
 mod worker;
 
-pub use limit::SearchLimit;
+pub use time::SearchLimit;
 pub use transposition::TranspositionTable;
 
 use std::{iter, sync::atomic::AtomicBool};

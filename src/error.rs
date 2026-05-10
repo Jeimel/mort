@@ -29,6 +29,7 @@ macro_rules! unwrap_or {
 pub enum Error {
     Fen(FenParseError),
     Uci(UciError),
+    Internal(String),
 }
 
 impl Display for Error {
@@ -36,6 +37,7 @@ impl Display for Error {
         match self {
             Error::Fen(error) => write!(f, "Invalid FEN: {}", error),
             Error::Uci(error) => write!(f, "Invalid argument: {}", error),
+            Error::Internal(error) => write!(f, "Internal error: {}", error),
         }
     }
 }

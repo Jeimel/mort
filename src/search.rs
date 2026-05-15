@@ -6,7 +6,7 @@ mod time;
 mod transposition;
 mod worker;
 
-pub use time::SearchLimit;
+pub use time::{SearchLimit, TimeManagement};
 pub use transposition::TranspositionTable;
 
 use std::{iter, sync::atomic::AtomicBool};
@@ -55,15 +55,21 @@ impl NodeType for NonPV {
 
 pub fn go(
     pos: &Position,
-    limits: &SearchLimit,
+    time: &TimeManagement,
     tt: &TranspositionTable,
     abort: &AtomicBool,
 ) -> (i32, Option<Move>) {
-    let mut main = Worker::new(pos.clone(), tt.view(), limits.clone(), &abort, true);
+    let mut main = Worker::new(pos.clone(), tt.view(), time.clone(), &abort, true);
 
     main.pos.reset_height();
 
-    iterative_deepening(&mut main, limits.depth as i32);
+    let depth = if let SearchLimit::Depth(depth) = time.limit() {
+        depth
+    } else {
+        MAX_DEPTH as i32
+    };
+
+    iterative_deepening(&mut main, depth);
 
     let (score, mov) = main.result();
 

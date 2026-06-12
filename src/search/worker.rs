@@ -1,7 +1,6 @@
 use std::{
     fmt::Display,
     sync::atomic::{AtomicBool, Ordering},
-    time::Instant,
 };
 
 use types::Move;
@@ -9,13 +8,12 @@ use types::Move;
 use crate::{
     chess::Position,
     search::{
-        SearchLimit, history::ButterflyHistory, pv::PrincipalVariation,
+        TimeManagement, history::ButterflyHistory, pv::PrincipalVariation,
         transposition::TranspositionView,
     },
 };
 
 struct Info {
-    start: Instant,
     nodes: u64,
     pv: PrincipalVariation,
 }
@@ -35,14 +33,9 @@ impl Display for Info {
 impl Info {
     fn new() -> Self {
         Self {
-            start: Instant::now(),
             nodes: 0,
             pv: PrincipalVariation::EMPTY,
         }
-    }
-
-    fn elapsed(&self) -> u128 {
-        self.start.elapsed().as_millis()
     }
 }
 
@@ -50,7 +43,7 @@ pub struct Worker<'a> {
     pub(super) pos: Position,
     pub(super) tt: TranspositionView<'a>,
     pub(super) history: ButterflyHistory,
-    limits: SearchLimit,
+    time: TimeManagement,
     info: Info,
     abort: &'a AtomicBool,
     main: bool,
@@ -60,7 +53,7 @@ impl<'a> Worker<'a> {
     pub fn new(
         pos: Position,
         tt: TranspositionView<'a>,
-        limits: SearchLimit,
+        time: TimeManagement,
         abort: &'a AtomicBool,
         main: bool,
     ) -> Self {
@@ -68,7 +61,7 @@ impl<'a> Worker<'a> {
             pos,
             tt,
             history: ButterflyHistory::EMPTY,
-            limits,
+            time,
             info: Info::new(),
             abort,
             main,
@@ -80,7 +73,7 @@ impl<'a> Worker<'a> {
     }
 
     pub fn check_limits(&self) {
-        if self.limits.check(self.info.elapsed(), self.info.nodes) {
+        if self.time.check(self.info.nodes) {
             self.abort.store(true, Ordering::Relaxed);
         }
     }

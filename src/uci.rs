@@ -1,8 +1,12 @@
 use std::{
     collections::VecDeque,
-    io, process,
-    slice::Iter,
-    sync::atomic::{AtomicBool, Ordering},
+    io::stdin,
+    process,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+        mpsc::{Receiver, channel},
+    },
     thread,
 };
 
@@ -13,7 +17,7 @@ use crate::{
     error::Error,
     evaluation::evaluate,
     ok_or,
-    search::{SearchLimit, TranspositionTable, go},
+    search::{self, SearchLimit, TimeManagement, TranspositionTable},
     syntax_error, unwrap_or,
     util::{bench, perft},
 };
@@ -22,23 +26,37 @@ const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 
 
 mod default {
     pub const TT_SIZE: usize = 16;
-    pub const OVERHEAD: u16 = 10;
+    pub const OVERHEAD: u64 = 10;
 }
 
-fn read() -> Option<String> {
-    let mut input = String::new();
+fn spawn(abort: Arc<AtomicBool>) -> Receiver<String> {
+    let (sender, receiver) = channel();
 
-    let bytes_read = match io::stdin().read_line(&mut input) {
-        Ok(bytes_read) => bytes_read,
-        Err(_) => return None,
-    };
+    thread::spawn(move || {
+        loop {
+            let mut input = String::new();
 
-    // We received EOF
-    if bytes_read == 0 {
-        process::exit(0);
-    }
+            // Check for EOF
+            if stdin().read_line(&mut input).unwrap_or(0) == 0 {
+                let _ = sender.send("quit".to_string());
+                break;
+            };
 
-    Some(input)
+            match input.as_str() {
+                "isready" => println!("readyok"),
+                "stop" => abort.store(true, Ordering::Relaxed),
+                "quit" => {
+                    let _ = sender.send("quit".to_string());
+                    break;
+                }
+                _ => {
+                    let _ = sender.send(input);
+                }
+            }
+        }
+    });
+
+    receiver
 }
 
 pub fn run(mut buffer: VecDeque<String>) {
@@ -46,40 +64,41 @@ pub fn run(mut buffer: VecDeque<String>) {
     let mut tt = TranspositionTable::new();
     let mut overhead = default::OVERHEAD;
 
+    let abort = Arc::new(AtomicBool::new(false));
+
     tt.resize(default::TT_SIZE);
 
+    let receiver = spawn(abort.clone());
+
     loop {
-        let input = match buffer.pop_front().or_else(read) {
+        let input = match buffer.pop_front() {
             Some(input) => input,
-            None => continue,
+            None => match receiver.recv() {
+                Ok(input) => input,
+                Err(_) => continue,
+            },
         };
 
         let commands: Vec<_> = input.split_ascii_whitespace().collect();
-        let command = match commands.first() {
-            Some(command) => *command,
-            None => continue,
-        };
 
-        match command {
-            "quit" => process::exit(0),
-            "uci" => identify(),
-            "setoption" => unwrap_or!(handle_option(commands, &mut tt, &mut overhead)),
-            "position" => unwrap_or!(handle_position(&mut pos, commands)),
-            "ucinewgame" => {
-                pos = Position::from_fen(START_POS).unwrap();
-                tt.clear();
-            }
-            "isready" => println!("readyok"),
-            "go" => unwrap_or!(handle_go(&pos, &tt, overhead, commands, &mut buffer)),
-            "bench" => bench(&tt, commands),
-            "d" => println!("{}", pos),
-            "eval" => println!("score cp {}", evaluate(&pos)),
-            _ => eprintln!("Unknown command: {}", command),
+        match commands.as_slice() {
+            ["quit"] => process::exit(0),
+            ["uci"] => uci(),
+            ["setoption", tokens @ ..] => unwrap_or!(option(tokens, &mut tt, &mut overhead)),
+            ["position", tokens @ ..] => unwrap_or!(position(&mut pos, tokens)),
+            ["ucinewgame"] => newgame(&mut pos, &mut tt),
+            ["isready"] => println!("readyok"),
+            ["go", tokens @ ..] => unwrap_or!(go(&pos, &tt, overhead, &abort, tokens)),
+            ["bench", tokens @ ..] => bench(&tt, tokens),
+            ["d"] => println!("{}", pos),
+            ["eval"] => println!("score cp {}", evaluate(&pos)),
+            [] => (),
+            _ => eprintln!("Unknown command: {}", input),
         };
     }
 }
 
-fn identify() {
+fn uci() {
     println!(concat!(
         "id name mort-",
         env!("CARGO_PKG_VERSION"),
@@ -96,54 +115,35 @@ fn identify() {
     ));
 }
 
-fn handle_option(
-    commands: Vec<&str>,
-    tt: &mut TranspositionTable,
-    overhead: &mut u16,
-) -> Result<(), Error> {
-    match commands[1..] {
+fn option(tokens: &[&str], tt: &mut TranspositionTable, overhead: &mut u64) -> Result<(), Error> {
+    match tokens {
         ["name", "Hash", "value", x] => tt.resize(ok_or!(x.parse().ok(), "integer", x)),
         ["name", "Clear", "Hash"] => tt.clear(),
         ["name", "Overhead", "value", x] => *overhead = ok_or!(x.parse().ok(), "integer", x),
         #[rustfmt::skip]
-        _ => return Err(Error::Uci(syntax_error!("name <id> value <x>", commands[1..].join(" ")))),
+        _ => return Err(Error::Uci(syntax_error!("name <id> value <x>", tokens.join(" ")))),
     };
 
     Ok(())
 }
 
-fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error> {
-    let mut commands = commands.iter().peekable().skip(1);
+fn position(pos: &mut Position, tokens: &[&str]) -> Result<(), Error> {
+    let mut parts = tokens.splitn(2, |&t| t == "moves");
 
-    let mut fen = match *commands.next().unwrap() {
-        "fen" | "startpos" => String::new(),
-        command => return Err(Error::Uci(syntax_error!("[fen|startpos]", command))),
+    let fen = match parts.next() {
+        Some(["startpos"]) => START_POS,
+        Some(["fen", tokens @ ..]) => &tokens.join(" "),
+        #[rustfmt::skip]
+        _ => return Err(Error::Uci(syntax_error!("fen or startpos", tokens.join(" ")))),
     };
 
-    // We iterate until we are either empty, or we found the "moves" token, which we will consume
-    while let Some(command) = commands.next()
-        && *command != "moves"
-    {
-        fen.push_str(&format!("{} ", command));
-    }
+    *pos = Position::from_fen(fen)?;
 
-    let fen = if fen.is_empty() {
-        START_POS
-    } else {
-        fen.as_str()
-    };
-
-    *pos = match Position::from_fen(fen) {
-        Ok(pos) => pos,
-        Err(err) => return Err(err),
-    };
-
-    // We already skipped the "moves" token earlier, so we can directly play the moves if any
-    while let Some(str) = commands.next() {
+    for str in parts.next().unwrap_or_default() {
         let mut moves = MoveList::new();
         pos.generate::<All>(&mut moves);
 
-        match moves.iter().find(|mov| &format!("{}", mov) == *str) {
+        match moves.iter().find(|mov| format!("{}", mov) == *str) {
             Some(mov) => pos.make_move(mov),
             None => return Err(Error::Uci(syntax_error!("valid move", str))),
         };
@@ -152,118 +152,77 @@ fn handle_position(pos: &mut Position, commands: Vec<&str>) -> Result<(), Error>
     Ok(())
 }
 
-fn handle_go(
+fn newgame(pos: &mut Position, tt: &mut TranspositionTable) {
+    *pos = Position::from_fen(START_POS).unwrap();
+    tt.clear();
+}
+
+fn go(
     pos: &Position,
     tt: &TranspositionTable,
-    overhead: u16,
-    commands: Vec<&str>,
-    buffer: &mut VecDeque<String>,
+    overhead: u64,
+    abort: &Arc<AtomicBool>,
+    tokens: &[&str],
 ) -> Result<(), Error> {
-    let abort = AtomicBool::new(false);
+    abort.store(false, Ordering::Relaxed);
 
-    let limits = handle_limits(&mut commands.iter(), pos.stm(), overhead)?;
-
-    if limits.perft != 0 {
-        perft::<true>(&mut pos.clone(), limits.perft);
-
-        return Ok(());
+    let limit = parse_limits(tokens, pos.stm())?;
+    if let SearchLimit::Perft(depth) = limit {
+        return Ok(perft::<true>(&mut pos.clone(), depth)).map(|_| ());
     }
+
+    let time = TimeManagement::new(limit, overhead);
 
     thread::scope(|s| {
         s.spawn(|| {
-            let (_, mov) = go(&pos, &limits, &tt, &abort);
+            let (_, mov) = search::go(&pos, &time, &tt, &abort);
 
             match mov {
                 Some(mov) => println!("bestmove {}", mov),
-                _ => eprintln!("Internal error: No move found"),
+                _ => panic!("{}", Error::Internal("No move found".to_string())),
             };
         });
-
-        if let Some(arg) = handle_search_input(&abort) {
-            buffer.push_back(arg);
-        }
 
         Ok(())
     })
 }
 
-fn handle_limits(
-    commands: &mut Iter<&str>,
-    stm: Color,
-    overhead: u16,
-) -> Result<SearchLimit, Error> {
-    macro_rules! parse {
-        (match ($commands:expr, $key:ident) { $($value:literal => $var:expr),* $(,)? }) => {
-            match *$key {
-                $($value => $var = parse!($key, $commands),)*
-                _ => {},
-            }
-        };
-
-        ($key:expr, $commands:expr) => {{
-            let value = match $commands.next() {
-                Some(value) => value,
-                None => return Err(Error::Uci(format!("Missing value for {}", $key))),
-            };
-
-            match value.parse() {
-                Ok(value) => value,
-                Err(_) => return Err(Error::Uci(format!("Invalid value for {}", $key))),
-            }
-        }};
+fn parse_limits(tokens: &[&str], stm: Color) -> Result<SearchLimit, Error> {
+    if let ["infinite"] = tokens {
+        return Ok(SearchLimit::Infinite);
     }
 
-    let mut limits = SearchLimit::MAX;
-    let mut left = [u128::MAX, u128::MAX];
-    let mut increment = [0, 0];
+    let mut main = None;
+    let mut increment = None;
 
-    while let Some(key) = commands.next() {
-        if *key == "infinite" {
-            continue;
-        }
-
-        parse!(match (commands, key) {
-            "perft" => limits.perft,
-            "depth" => limits.depth,
-            "nodes" => limits.nodes,
-            "wtime" => left[Color::White],
-            "btime" => left[Color::Black],
-            "winc" => increment[Color::White],
-            "binc" => increment[Color::Black],
-        });
-    }
-
-    // We want to have a search time greater than zero
-    limits.time = (left[stm] / 20 + increment[stm] / 2)
-        .saturating_sub(u128::from(overhead))
-        .max(1);
-
-    Ok(limits)
-}
-
-fn handle_search_input(abort: &AtomicBool) -> Option<String> {
-    loop {
-        let input = match read() {
-            Some(input) => input,
-            None => continue,
+    for chunk in tokens.chunks(2) {
+        let [name, value] = *chunk else {
+            return Err(Error::Uci(syntax_error!("<name> <value>", chunk.join(" "))));
         };
 
-        let command = match input.split_ascii_whitespace().next() {
-            Some(command) => command,
-            None => continue,
+        let Ok(value) = value.parse::<u64>() else {
+            return Err(Error::Uci(syntax_error!("integer", value)));
         };
 
-        match command {
-            "quit" => process::exit(0),
-            "isready" => println!("readyok"),
-            "stop" => abort.store(true, Ordering::Relaxed),
-            _ => return Some(input),
-        }
-
-        if abort.load(Ordering::Relaxed) {
-            break;
+        match name {
+            "perft" => return Ok(SearchLimit::Perft(value as u16)),
+            "depth" => return Ok(SearchLimit::Depth(value as i32)),
+            "nodes" => return Ok(SearchLimit::Nodes(value)),
+            "movetime" => return Ok(SearchLimit::Time(value)),
+            "wtime" if stm == Color::White => main = Some(value),
+            "btime" if stm == Color::Black => main = Some(value),
+            "winc" if stm == Color::White => increment = Some(value),
+            "binc" if stm == Color::Black => increment = Some(value),
+            _ => (),
         }
     }
 
-    None
+    if main.is_none() && increment.is_none() {
+        return Ok(SearchLimit::Infinite);
+    }
+
+    Ok(SearchLimit::Bonus(
+        main.unwrap_or_default(),
+        increment.unwrap_or_default(),
+    ))
 }

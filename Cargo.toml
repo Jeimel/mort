@@ -13,9 +13,3 @@ debug-assertions = true
 lto = true
 panic = "abort"
 codegen-units = 1
-
-[dependencies]
-types = { path = "./types" }
-
-[build-dependencies]
-types = { path = "./types" }

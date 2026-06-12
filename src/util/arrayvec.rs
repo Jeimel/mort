@@ -18,12 +18,6 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         }
     }
 
-    pub fn get(&self, index: usize) -> &T {
-        debug_assert!(index < self.len);
-
-        unsafe { &*self.data.get_unchecked(index).as_ptr() }
-    }
-
     pub fn push(&mut self, value: T) {
         debug_assert!(self.len < N);
 

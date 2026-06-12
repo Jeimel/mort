@@ -1,6 +1,4 @@
-use types::const_for;
-
-use crate::util::XorShiftState;
+use crate::{const_for, util::XorShiftState};
 
 pub type Key = u64;
 

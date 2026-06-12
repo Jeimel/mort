@@ -1,8 +1,6 @@
-use types::{Color, Move, MoveFlag, PieceType, Rank, Square, SquareSet};
-
 use crate::{
     chess::{
-        MoveList, attacks,
+        Color, Move, MoveFlag, MoveList, PieceType, Rank, Square, SquareSet, attacks,
         board::{BETWEEN, Board},
     },
     push_loop,

@@ -3,10 +3,8 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use types::Move;
-
 use crate::{
-    chess::Position,
+    chess::{Move, Position},
     search::{
         TimeManagement, history::ButterflyHistory, pv::PrincipalVariation,
         transposition::TranspositionView,

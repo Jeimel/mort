@@ -1,14 +1,11 @@
-use types::{Color, File, Piece, Rank, Square};
-
 use crate::{
     chess::{
-        board::{Board, zobrist},
+        Color, File, Piece, Rank, Square,
+        board::{Board, layout::PieceLayout, zobrist},
         position::GameState,
     },
     ok_or, syntax_error,
 };
-
-use super::layout::PieceLayout;
 
 pub type FenParseError = String;
 

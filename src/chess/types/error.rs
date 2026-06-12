@@ -1,13 +1,9 @@
 use std::{error::Error, fmt::Display};
 
-/// The error type, which is returned from converting symbols into a type.
 #[derive(Debug)]
 pub enum TypeParseError {
-    /// The symbol was not a valid [`crate::Piece`].
     InvalidPieceSymbol(char),
-    /// The symbol was not a valid [`crate::PieceType`].
     InvalidPieceTypeSymbol(char),
-    /// The symbol was not a valid [`crate::Color`].
     InvalidColorSymbol(String),
 }
 

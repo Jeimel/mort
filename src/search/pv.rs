@@ -1,14 +1,13 @@
 use std::fmt::Display;
 
-use types::{ArrayVec, Move};
-
 use crate::{
-    chess::{All, MoveList},
+    chess::{All, Move, MoveList},
     evaluation::{DRAW, INF, mate_in, mated_in},
     search::{
         MAX_DEPTH, MAX_PLY, NodeType, NonPV, PV, picker::MovePicker, quiescence,
         transposition::Bound, worker::Worker,
     },
+    util::ArrayVec,
 };
 
 #[derive(Clone)]

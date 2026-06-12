@@ -1,8 +1,7 @@
 use std::fmt::Display;
 
-use crate::SquareSet;
+use crate::chess::SquareSet;
 
-/// A rank on a chessboard.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]
 pub enum Rank {
@@ -33,7 +32,6 @@ impl Display for Rank {
 }
 
 impl Rank {
-    /// Convert `index` to a [`Rank`].
     pub const fn new(index: u8) -> Option<Self> {
         if index < 8 {
             // Safety: `index` has a corresponding `Rank` variant
@@ -43,7 +41,6 @@ impl Rank {
         }
     }
 
-    /// Shift given [`Rank`] by `delta`.
     pub const fn try_delta(self, delta: i8) -> Option<Self> {
         let index = self as i8 + delta;
         if index < 0 || index >= 8 {
@@ -53,12 +50,10 @@ impl Rank {
         Self::new(index as u8)
     }
 
-    /// Get a [`SquareSet`] with all squares on given [`Rank`] set.
     pub const fn set(self) -> SquareSet {
         SquareSet(0xffu64 << (self as u8 * 8))
     }
 
-    /// Get a [`DoubleEndedIterator`] over all [`Rank`].
     pub fn iter() -> impl DoubleEndedIterator<Item = Self> {
         (0..8).map(|index| Self::new(index).unwrap())
     }

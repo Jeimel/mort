@@ -5,11 +5,9 @@ pub use state::GameState;
 
 use std::fmt::Display;
 
-use types::{Color, Move};
-
 use crate::{
     chess::{
-        MoveList,
+        Color, Move, MoveList,
         board::{Board, GenerationType, Key, PieceLayout},
     },
     error::Error,

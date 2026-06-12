@@ -3,24 +3,23 @@ mod fen;
 mod layout;
 mod legal;
 mod movegen;
+mod tables;
 mod zobrist;
 
 pub use fen::FenParseError;
 pub use layout::PieceLayout;
 pub use movegen::{All, Capture, GenerationType, Quiet};
+pub use tables::{BETWEEN, LINE};
 pub use zobrist::Key;
 
 use std::fmt::Display;
 
-use types::{
+use crate::chess::{
     Color, Move, MoveFlag,
     PieceType::{self, Bishop, King, Knight, Pawn, Queen, Rook},
-    Rank, Square, SquareSet,
+    Rank, Square,
+    position::GameState,
 };
-
-use crate::chess::position::GameState;
-
-include!(concat!(env!("OUT_DIR"), "/squareset_tables.rs"));
 
 #[derive(Clone)]
 pub struct Board {

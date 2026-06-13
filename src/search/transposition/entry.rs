@@ -1,8 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use types::Move;
-
-use crate::search::transposition::Bound;
+use crate::{chess::Move, search::transposition::Bound};
 
 const _: () = assert!(
     std::mem::size_of::<TranspositionEntry>() == std::mem::size_of::<TranspositionInternal>()

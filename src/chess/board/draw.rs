@@ -1,6 +1,4 @@
-use types::{Color, PieceType, SquareSet};
-
-use crate::chess::board::Board;
+use crate::chess::{Color, PieceType, SquareSet, board::Board};
 
 impl Board {
     pub fn draw(&self) -> bool {

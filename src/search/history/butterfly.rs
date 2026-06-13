@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut, Index};
 
-use types::Move;
+use crate::chess::Move;
 
 const BUTTERFLY_SIZE: usize = u16::MAX as usize + 1;
 

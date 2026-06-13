@@ -10,10 +10,8 @@ use std::{
     thread,
 };
 
-use types::Color;
-
 use crate::{
-    chess::{All, MoveList, Position},
+    chess::{All, Color, MoveList, Position},
     error::Error,
     evaluation::evaluate,
     ok_or,

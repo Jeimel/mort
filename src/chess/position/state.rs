@@ -1,6 +1,7 @@
-use types::{Castling, Color, PieceType, Square, SquareSet};
-
-use crate::chess::board::{BETWEEN, Key, PieceLayout};
+use crate::chess::{
+    Castling, Color, PieceType, Square, SquareSet,
+    board::{BETWEEN, Key, PieceLayout},
+};
 
 #[derive(Clone)]
 pub struct GameState {

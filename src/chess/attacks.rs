@@ -1,4 +1,4 @@
-use types::{
+use crate::chess::{
     Color, File, PieceType, Square, SquareSet,
     magic::{bishop_magic_index, rook_magic_index},
 };
@@ -76,12 +76,12 @@ pub fn knight(sq: Square) -> SquareSet {
 }
 
 /// Index shared precomputed attacks for bishops based on magic index
-pub fn bishop(sq: Square, blockers: SquareSet) -> SquareSet {
+pub const fn bishop(sq: Square, blockers: SquareSet) -> SquareSet {
     SLIDING_MOVES[bishop_magic_index(sq, blockers)]
 }
 
 /// Index shared precomputed attacks for rooks based on magic index
-pub fn rook(sq: Square, blockers: SquareSet) -> SquareSet {
+pub const fn rook(sq: Square, blockers: SquareSet) -> SquareSet {
     SLIDING_MOVES[rook_magic_index(sq, blockers)]
 }
 

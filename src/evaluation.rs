@@ -4,9 +4,8 @@ mod tables;
 pub use score::{DRAW, INF, MATE, mate_in, mated_in};
 
 use tables::{ENDGAME_TABLE, MIDGAME_TABLE};
-use types::Color;
 
-use crate::chess::Position;
+use crate::chess::{Color, Position};
 
 const MIDGAME_VALUE: [i32; 6] = [82, 337, 365, 477, 1025, 0];
 const ENDGAME_VALUE: [i32; 6] = [94, 281, 297, 512, 936, 0];

@@ -2,7 +2,7 @@ use types::{Color, Move, MoveFlag, PieceType, SquareSet};
 
 use crate::chess::{
     attacks,
-    board::{Board, LINE},
+    board::{BETWEEN, Board, LINE},
 };
 
 impl Board {
@@ -31,6 +31,11 @@ impl Board {
             return false;
         }
 
+        // On a quiet move, `target` can't be occupied by any piece
+        if flag == MoveFlag::QUIET && capture.is_some() {
+            return false;
+        }
+
         if flag == MoveFlag::KING_CASTLE {
             #[rustfmt::skip]
             return self.state.castling.pseudo_kingside(color, self.layout.all());
@@ -43,9 +48,15 @@ impl Board {
 
         let typ = piece.typ();
 
+        if flag == MoveFlag::DOUBLE_PAWN && typ != PieceType::Pawn {
+            return false;
+        }
+
+        let is_double = flag == MoveFlag::DOUBLE_PAWN;
+
         // Can `piece` reach `target` from `start`?
         if typ != PieceType::Pawn {
-            return attacks::by_type(typ, start, self.layout.all()).is_set(target);
+            return !is_double && attacks::by_type(typ, start, self.layout.all()).is_set(target);
         }
 
         // On en passant, our pawn can only attack the current en passant target square
@@ -62,7 +73,7 @@ impl Board {
         let double = single.rotate(Self::PAWN_ROTATION[color]);
 
         if double.is_set(target) {
-            return !self.layout.all().is_set(target);
+            return is_double && (self.layout.all() & (single | double)).is_empty();
         }
 
         // On capture, our pawn can only attack `target` squares based on `start`
@@ -78,6 +89,8 @@ impl Board {
         const KING_PATH: [SquareSet; 2] = [SquareSet(0b0110_0000), SquareSet(0b0110_0000 << 56)];
         const QUEEN_PATH: [SquareSet; 2] = [SquareSet(0b0000_1100), SquareSet(0b0000_1100 << 56)];
 
+        debug_assert!(self.pseudo_legal(mov, color));
+
         let occ = self.layout.all();
 
         if mov.flag() == MoveFlag::KING_CASTLE {
@@ -85,7 +98,6 @@ impl Board {
         }
 
         if mov.flag() == MoveFlag::QUEEN_CASTLE {
-            #[rustfmt::skip]
             return self.layout.attacked(QUEEN_PATH[color], color, occ);
         }
 
@@ -111,10 +123,25 @@ impl Board {
             return self.layout.attackers(target, color, occ - start.set()).is_empty();
         }
 
-        // The start square must either not be a blocker of our king,
-        // or the piece moves towards the threat
-        (self.state.blockers & start.set()).is_empty()
-            || !(LINE[start][target] & self.layout.king(color).set()).is_empty()
+        // We can only move our king, if in double-check
+        if self.state.checkers.many() {
+            return false;
+        }
+
+        let king = self.layout.king(color);
+
+        // If our piece is a blocker, we can only move towards the threat
+        if self.state.blockers.is_set(start) && !LINE[start][target].is_set(king) {
+            return false;
+        }
+
+        if self.state.checkers.is_empty() {
+            return true;
+        }
+
+        // We have to either capture or block the threat
+        let threat = self.state.checkers.index_lsb() as usize;
+        (BETWEEN[king][threat] | self.state.checkers).is_set(target)
     }
 }
 

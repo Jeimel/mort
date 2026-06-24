@@ -37,7 +37,7 @@ impl Position {
         Ok(Position {
             board,
             stm,
-            ply: (ply - 1) * 2 + if stm == Color::White { 0 } else { 1 },
+            ply: (ply - 1) * 2 + usize::from(stm == Color::Black),
             height: 0,
             history: Vec::new(),
         })

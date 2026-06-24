@@ -61,7 +61,7 @@ impl TranspositionView<'_> {
     }
 
     fn index(&self, zobrist: Key) -> usize {
-        (zobrist as usize) & (self.table.len() - 1)
+        ((u128::from(zobrist) * (self.table.len() as u128)) >> 64) as usize
     }
 
     fn checksum(zobrist: Key) -> u16 {

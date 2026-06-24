@@ -63,7 +63,7 @@ impl Board {
         let mut target = SquareSet::EMPTY;
 
         // We only have to generate non-king moves if our king is not in double check
-        if !EVADING || checkers.is_less_two() {
+        if !EVADING || !checkers.many() {
             debug_assert!(checkers.popcnt() < 2);
 
             target = match EVADING {

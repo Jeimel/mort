@@ -1,6 +1,5 @@
 use std::{env, fs, path::Path};
 
-#[allow(dead_code)]
 #[path = "./src/chess/types"]
 mod chess {
     mod file;
@@ -47,7 +46,7 @@ fn write_slider() {
     write_table(&mut table, &BISHOP, bishop_magic_index);
 
     let code = format!(
-        "const SLIDING_MOVES: &[SquareSet; crate::chess::magic::LOOKUP_TABLE_SIZE] = &{:?};",
+        "const SLIDING_MOVES: &[crate::chess::types::SquareSet; crate::chess::magic::LOOKUP_TABLE_SIZE] = &{:?};",
         table
     );
 

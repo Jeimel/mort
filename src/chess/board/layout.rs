@@ -1,12 +1,10 @@
 use std::fmt::Write;
 
-use types::{
+use crate::chess::{
     Color, File, Piece,
     PieceType::{self, Bishop, King, Knight, Pawn, Queen, Rook},
-    Rank, Square, SquareSet,
+    Rank, Square, SquareSet, attacks,
 };
-
-use crate::chess::attacks;
 
 #[derive(Clone, Copy)]
 pub struct PieceLayout {

@@ -1,7 +1,8 @@
-use types::{Move, MoveFlag, PieceType};
-
 use crate::{
-    chess::{Capture, GenerationType, MoveList, MoveListEntry, PieceLayout, Quiet},
+    chess::{
+        Capture, GenerationType, Move, MoveFlag, MoveList, MoveListEntry, PieceLayout, PieceType,
+        Quiet,
+    },
     search::worker::Worker,
 };
 

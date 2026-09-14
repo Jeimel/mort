@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use types::{ArrayVec, Move};
+use crate::{chess::Move, util::ArrayVec};
 
 const MAX_MOVES: usize = 218;
 

@@ -2,9 +2,7 @@ mod butterfly;
 
 pub use butterfly::ButterflyHistory;
 
-use types::Move;
-
-use crate::search::worker::Worker;
+use crate::{chess::Move, search::worker::Worker};
 
 impl Worker<'_> {
     pub fn update_quiet_history(&mut self, mov: Move, depth: i16) {

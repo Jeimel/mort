@@ -1,13 +1,31 @@
+mod castling;
+mod chessmove;
+mod color;
+mod file;
+mod movelist;
+mod piece;
+mod rank;
+mod slider;
+mod square;
+mod squareset;
+
+pub use castling::Castling;
+pub use chessmove::{Move, MoveFlag};
+pub use color::Color;
+pub use file::File;
+pub use movelist::{MoveList, MoveListEntry};
+pub use piece::{Piece, PieceType};
+pub use rank::Rank;
+pub use slider::{BISHOP, ROOK, magic};
+pub use square::Square;
+pub use squareset::SquareSet;
+
 use std::{error::Error, fmt::Display};
 
-/// The error type, which is returned from converting symbols into a type.
 #[derive(Debug)]
 pub enum TypeParseError {
-    /// The symbol was not a valid [`crate::Piece`].
     InvalidPieceSymbol(char),
-    /// The symbol was not a valid [`crate::PieceType`].
     InvalidPieceTypeSymbol(char),
-    /// The symbol was not a valid [`crate::Color`].
     InvalidColorSymbol(String),
 }
 

@@ -1,7 +1,5 @@
-use types::Move;
-
 use crate::{
-    chess::Key,
+    chess::{Key, Move},
     evaluation::MATE,
     search::transposition::{Bound, TranspositionEntry, entry::TranspositionInternal},
 };

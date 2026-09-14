@@ -20,7 +20,7 @@ make build
 make -C "$CLONE_DIR" build
 
 ./cutechess/cutechess-cli \
-    -engine name=$1 cmd=target/release/$NAME \
+    -engine name=$(git branch --show-current) cmd=target/release/$NAME \
     -engine name=baseline cmd="$CLONE_DIR/target/release/$NAME" \
     -each proto=uci tc=10+0.1 \
     -games 2 \

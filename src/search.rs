@@ -12,7 +12,7 @@ pub use transposition::TranspositionTable;
 use std::{iter, sync::atomic::AtomicBool};
 
 use crate::{
-    chess::Position,
+    chess::{Move, Position},
     evaluation::{INF, MATE},
     search::{
         picker::MovePicker,
@@ -21,8 +21,6 @@ use crate::{
         worker::Worker,
     },
 };
-
-use types::Move;
 
 pub const MAX_DEPTH: usize = 127;
 pub const MAX_PLY: i32 = 127;

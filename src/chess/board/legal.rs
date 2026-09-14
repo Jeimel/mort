@@ -1,8 +1,6 @@
-use types::{Color, Move, MoveFlag, PieceType, SquareSet};
-
 use crate::chess::{
-    attacks,
-    board::{Board, LINE},
+    Color, Move, MoveFlag, PieceType, SquareSet, attacks,
+    board::{BETWEEN, Board, LINE},
 };
 
 impl Board {

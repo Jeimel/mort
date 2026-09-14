@@ -1,67 +1,54 @@
 use std::ops::{BitAnd, BitOr, Not, Sub};
 
-use crate::Square;
+use crate::chess::Square;
 
-/// Represents a board as array of 64 bits.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct SquareSet(pub u64);
 
 impl SquareSet {
-    /// The empty [`SquareSet`].
     pub const EMPTY: Self = Self(0);
 
-    /// Returns `true` if this [`SquareSet`] contains no squares.
     pub fn is_empty(self) -> bool {
         self == Self::EMPTY
     }
 
-    /// Returns `true` if the given [`Square`] is contained in this [`SquareSet`].
     pub fn is_set(&self, sq: Square) -> bool {
         (self.0 & sq.set().0) != 0
     }
 
-    /// Returns `true` if this [`SquareSet`] contains zero or one square.
     pub fn is_less_two(&self) -> bool {
         self.reset_lsb().is_empty()
     }
 
-    /// Toggles given [`Square`] in this [`SquareSet`].
     pub fn toggle(&mut self, sq: Square) {
         self.0 = self.0 ^ sq.set().0;
     }
 
-    /// Get [`SquareIter`] over all squares in this [`SquareSet`].
     pub fn iter(self) -> SquareIter {
         SquareIter::new(self)
     }
 
-    /// Get [`SquareSubsetIter`] over all subsets of this [`SquareSet`].
     pub fn iter_subset(self) -> SquareSubsetIter {
         SquareSubsetIter::new(self)
     }
 
-    /// Performs a wrapping subtraction of another [`SquareSet`].
     pub fn wrapping_sub(self, rhs: Self) -> Self {
         Self(self.0.wrapping_sub(rhs.0))
     }
 
-    /// Rotates this [`SquareSet`] by `n` bits.
     pub fn rotate(self, n: u32) -> Self {
         Self(self.0.rotate_left(n))
     }
 
-    /// Get number of set bits in this [`SquareSet`].
     pub fn popcnt(self) -> u32 {
         self.0.count_ones()
     }
 
-    /// Get the index of the least significant set bit as a [`u8`].
     pub fn index_lsb(self) -> u8 {
         self.0.trailing_zeros() as u8
     }
 
-    /// Get this [`SquareSet`] with its least significant set bit removed.
     pub fn reset_lsb(self) -> Self {
         self & self.wrapping_sub(Self(1))
     }
@@ -99,7 +86,6 @@ impl Not for SquareSet {
     }
 }
 
-/// Iterator over all [`Square`] in a [`SquareSet`].
 pub struct SquareIter {
     set: SquareSet,
 }
@@ -128,7 +114,6 @@ impl Iterator for SquareIter {
     }
 }
 
-/// Iterator over all subsets of a [`SquareSet`].
 pub struct SquareSubsetIter {
     set: SquareSet,
     subset: SquareSet,

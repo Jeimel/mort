@@ -48,7 +48,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateCaptures {
             self.stage = Stage::YieldCaptures;
 
-            self.extend::<Capture>(&worker);
+            self.extend::<Capture>(worker);
         }
 
         if self.stage == Stage::YieldCaptures {
@@ -67,7 +67,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateQuiets {
             self.stage = Stage::YieldQuiets;
 
-            self.extend::<Quiet>(&worker);
+            self.extend::<Quiet>(worker);
         }
 
         if self.stage == Stage::YieldQuiets {
@@ -124,6 +124,6 @@ impl MovePicker {
             MovePicker::score_quiets(worker, &mut self.moves[self.index..]);
         }
 
-        self.moves[self.index..].sort_unstable_by(|a, b| b.score.cmp(&a.score));
+        self.moves[self.index..].sort_unstable_by_key(|a| std::cmp::Reverse(a.score));
     }
 }

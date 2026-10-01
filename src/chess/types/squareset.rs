@@ -22,7 +22,7 @@ impl SquareSet {
     }
 
     pub fn toggle(&mut self, sq: Square) {
-        self.0 = self.0 ^ sq.set().0;
+        self.0 ^= sq.set().0;
     }
 
     pub fn iter(self) -> SquareIter {

@@ -13,7 +13,7 @@ impl Color {
     pub const fn new(index: u8) -> Option<Self> {
         if index < 2 {
             // Safety: `index` has a corresponding `Color` variant
-            Some(unsafe { std::mem::transmute(index) })
+            Some(unsafe { std::mem::transmute::<u8, Self>(index) })
         } else {
             None
         }
@@ -54,7 +54,7 @@ impl TryFrom<&str> for Color {
         match value {
             "w" => Ok(Color::White),
             "b" => Ok(Color::Black),
-            _ => Err(TypeParseError::InvalidColorSymbol(value.to_string())),
+            _ => Err(TypeParseError::Color(value.to_string())),
         }
     }
 }

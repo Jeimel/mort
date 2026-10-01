@@ -2,6 +2,7 @@ use crate::{const_for, util::XorShiftState};
 
 pub type Key = u64;
 
+#[allow(clippy::type_complexity)]
 const VALUES: ([[[Key; 64]; 6]; 2], [Key; 8], [Key; 16], Key) = {
     const SEED: u64 = 1070372;
 

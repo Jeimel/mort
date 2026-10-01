@@ -9,6 +9,7 @@ const _: () = assert!(
 pub struct TranspositionInternal(AtomicU64);
 
 impl TranspositionInternal {
+    #[allow(clippy::declare_interior_mutable_const)]
     pub const EMPTY: Self = Self(AtomicU64::new(0));
 
     pub fn load(&self) -> u64 {
@@ -17,7 +18,7 @@ impl TranspositionInternal {
 
     pub fn store(&self, entry: TranspositionEntry) {
         // Safety: both `TranspositionEntry` and `TranspositionInternal` are of size 8 bytes
-        let internal = unsafe { std::mem::transmute(entry) };
+        let internal = unsafe { std::mem::transmute::<TranspositionEntry, u64>(entry) };
         self.0.store(internal, Ordering::Relaxed);
     }
 }

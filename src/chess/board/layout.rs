@@ -69,7 +69,7 @@ impl PieceLayout {
             let start = row * 8;
 
             for piece in &self.mailbox[start..(start + 8)] {
-                write!(board, "| {} ", piece.map(|c| char::from(c)).unwrap_or(' '))?;
+                write!(board, "| {} ", piece.map(char::from).unwrap_or(' '))?;
             }
 
             write!(board, "| {}\n{}", row + 1, DELIMITER)?;

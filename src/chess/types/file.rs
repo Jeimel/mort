@@ -38,7 +38,7 @@ impl File {
     pub const fn new(index: u8) -> Option<Self> {
         if index < 8 {
             // Safety: `index` has a corresponding `File` variant
-            Some(unsafe { std::mem::transmute(index) })
+            Some(unsafe { std::mem::transmute::<u8, Self>(index) })
         } else {
             None
         }

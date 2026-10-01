@@ -36,8 +36,8 @@ impl Board {
     pub const PAWN_ROTATION: [u32; 2] = [8, 56];
 
     pub const DOUBLE_PUSH: [SquareSet; 2] = [Rank::Two.set(), Rank::Seven.set()];
+    pub const PROMOTION_RANK: [SquareSet; 2] = [Rank::Eight.set(), Rank::One.set()];
 
-    /// Generatae all pseudo-legal moves given the current position.
     #[inline(always)]
     pub fn generate<TYPE: GenerationType>(&self, moves: &mut MoveList, color: Color) {
         let checkers = self.state.checkers;
@@ -99,8 +99,6 @@ impl Board {
         target: SquareSet,
         occ: SquareSet,
     ) {
-        const PROMOTION_RANK: [SquareSet; 2] = [Rank::Eight.set(), Rank::One.set()];
-
         for start in (self.layout.get(PieceType::Pawn) & self.layout.color(color)).iter() {
             let set = start.set();
 
@@ -109,12 +107,12 @@ impl Board {
 
             // Captures and promotions within a single move are a special case, which we can filter
             // through the intersection between all captures and the respective last rank
-            let promo_captures = captures & PROMOTION_RANK[color];
+            let promo_captures = captures & Self::PROMOTION_RANK[color];
 
             // We don't consider captures and promotions here, so we remove
             // all captures on the respective last rank
             if TYPE::CAPTURE {
-                let captures = captures - PROMOTION_RANK[color];
+                let captures = captures - Self::PROMOTION_RANK[color];
                 push_loop!(moves, captures & target, start, MoveFlag::CAPTURE);
             }
 

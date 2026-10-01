@@ -26,7 +26,7 @@ impl Piece {
     pub const fn new(index: u8) -> Option<Self> {
         if index < 12 {
             // Safety: `index` has a corresponding `Piece` variant
-            Some(unsafe { std::mem::transmute(index) })
+            Some(unsafe { std::mem::transmute::<u8, Self>(index) })
         } else {
             None
         }
@@ -74,7 +74,7 @@ impl TryFrom<char> for Piece {
             'q' => Ok(Piece::BlackQueen),
             'K' => Ok(Piece::WhiteKing),
             'k' => Ok(Piece::BlackKing),
-            _ => Err(TypeParseError::InvalidPieceSymbol(value)),
+            _ => Err(TypeParseError::Piece(value)),
         }
     }
 }
@@ -94,7 +94,7 @@ impl PieceType {
     pub const fn new(index: u8) -> Option<Self> {
         if index < 6 {
             // Safety: `index` has a corresponding `PieceType` variant
-            Some(unsafe { std::mem::transmute(index) })
+            Some(unsafe { std::mem::transmute::<u8, Self>(index) })
         } else {
             None
         }
@@ -145,7 +145,7 @@ impl TryFrom<char> for PieceType {
             'r' => Ok(PieceType::Rook),
             'q' => Ok(PieceType::Queen),
             'k' => Ok(PieceType::King),
-            _ => Err(TypeParseError::InvalidPieceSymbol(value)),
+            _ => Err(TypeParseError::Piece(value)),
         }
     }
 }

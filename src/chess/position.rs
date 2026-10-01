@@ -88,7 +88,7 @@ impl Position {
     }
 
     pub fn unmake_move(&mut self, mov: Move) {
-        debug_assert!(self.history.len() > 0);
+        debug_assert!(!self.history.is_empty());
 
         self.stm = !self.stm;
         self.ply -= 1;

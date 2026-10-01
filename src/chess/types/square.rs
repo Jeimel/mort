@@ -29,7 +29,7 @@ impl Square {
     pub const fn new(index: u8) -> Option<Self> {
         if index < 64 {
             // Safety: `index` has a corresponding `Square` variant
-            Some(unsafe { std::mem::transmute(index) })
+            Some(unsafe { std::mem::transmute::<u8, Self>(index) })
         } else {
             None
         }
@@ -67,7 +67,7 @@ impl Square {
     }
 
     pub const fn flip(self) -> Self {
-        Self::new(self as u8 ^ 0b0111_000).unwrap()
+        Self::new(self as u8 ^ 0b0011_1000).unwrap()
     }
 }
 

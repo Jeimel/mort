@@ -57,7 +57,7 @@ pub fn go(
     tt: &TranspositionTable,
     abort: &AtomicBool,
 ) -> (i32, Option<Move>) {
-    let mut main = Worker::new(pos.clone(), tt.view(), time.clone(), &abort, true);
+    let mut main = Worker::new(pos.clone(), tt.view(), time.clone(), abort, true);
 
     main.pos.reset_height();
 

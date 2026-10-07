@@ -2,6 +2,8 @@ use std::fmt::Display;
 
 use crate::chess::FenParseError;
 
+pub type Result<T> = std::result::Result<T, Error>;
+
 pub type UciError = String;
 
 #[macro_export]

@@ -12,7 +12,7 @@ use std::{
 
 use crate::{
     chess::{All, Color, MoveList, Position},
-    error::Error,
+    error::{Error, Result},
     evaluation::evaluate,
     ok_or,
     search::{self, SearchLimit, TimeManagement, TranspositionTable},
@@ -57,7 +57,7 @@ fn spawn(abort: Arc<AtomicBool>) -> Receiver<String> {
     receiver
 }
 
-pub fn run(mut buffer: VecDeque<String>) {
+pub fn run(mut buffer: VecDeque<String>) -> Result<()> {
     let mut pos = Position::from_fen(START_POS).unwrap();
     let mut tt = TranspositionTable::new();
     let mut overhead = default::OVERHEAD;
@@ -113,7 +113,7 @@ fn uci() {
     ));
 }
 
-fn option(tokens: &[&str], tt: &mut TranspositionTable, overhead: &mut u64) -> Result<(), Error> {
+fn option(tokens: &[&str], tt: &mut TranspositionTable, overhead: &mut u64) -> Result<()> {
     match tokens {
         ["name", "Hash", "value", x] => tt.resize(ok_or!(x.parse().ok(), "integer", x)),
         ["name", "Clear", "Hash"] => tt.clear(),
@@ -125,7 +125,7 @@ fn option(tokens: &[&str], tt: &mut TranspositionTable, overhead: &mut u64) -> R
     Ok(())
 }
 
-fn position(pos: &mut Position, tokens: &[&str]) -> Result<(), Error> {
+fn position(pos: &mut Position, tokens: &[&str]) -> Result<()> {
     let mut parts = tokens.splitn(2, |&t| t == "moves");
 
     let fen = match parts.next() {
@@ -161,7 +161,7 @@ fn go(
     overhead: u64,
     abort: &Arc<AtomicBool>,
     tokens: &[&str],
-) -> Result<(), Error> {
+) -> Result<()> {
     abort.store(false, Ordering::Relaxed);
 
     let limit = parse_limits(tokens, pos.stm())?;
@@ -185,7 +185,7 @@ fn go(
     })
 }
 
-fn parse_limits(tokens: &[&str], stm: Color) -> Result<SearchLimit, Error> {
+fn parse_limits(tokens: &[&str], stm: Color) -> Result<SearchLimit> {
     if let ["infinite"] = tokens {
         return Ok(SearchLimit::Infinite);
     }

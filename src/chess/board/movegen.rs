@@ -38,6 +38,9 @@ impl Board {
     pub const DOUBLE_PUSH: [SquareSet; 2] = [Rank::Two.set(), Rank::Seven.set()];
     pub const PROMOTION_RANK: [SquareSet; 2] = [Rank::Eight.set(), Rank::One.set()];
 
+    pub const KING_TARGET: [Square; 2] = [Square::G1, Square::G8];
+    pub const QUEEN_TARGET: [Square; 2] = [Square::C1, Square::C8];
+
     #[inline(always)]
     pub fn generate<TYPE: GenerationType>(&self, moves: &mut MoveList, color: Color) {
         let checkers = self.state.checkers;
@@ -204,17 +207,22 @@ impl Board {
 
     #[inline(always)]
     fn generate_castling(&self, moves: &mut MoveList, color: Color, occ: SquareSet) {
-        const KING_TARGET: [Square; 2] = [Square::G1, Square::G8];
-        const QUEEN_TARGET: [Square; 2] = [Square::C1, Square::C8];
-
         let king = self.layout.king(color);
 
         if self.state.castling.pseudo_kingside(color, occ) {
-            moves.push(Move::new(king, KING_TARGET[color], MoveFlag::KING_CASTLE));
+            moves.push(Move::new(
+                king,
+                Self::KING_TARGET[color],
+                MoveFlag::KING_CASTLE,
+            ));
         }
 
         if self.state.castling.pseudo_queenside(color, occ) {
-            moves.push(Move::new(king, QUEEN_TARGET[color], MoveFlag::QUEEN_CASTLE));
+            moves.push(Move::new(
+                king,
+                Self::QUEEN_TARGET[color],
+                MoveFlag::QUEEN_CASTLE,
+            ));
         }
     }
 }

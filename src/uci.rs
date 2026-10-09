@@ -158,8 +158,6 @@ fn go(
     abort: &Arc<AtomicBool>,
     tokens: &[&str],
 ) -> Result<()> {
-    abort.store(false, Ordering::Relaxed);
-
     let limit = parse_limits(tokens, pos.stm())?;
     if let SearchLimit::Perft(depth) = limit {
         return Ok(perft::<true>(&mut pos.clone(), depth)).map(|_| ());

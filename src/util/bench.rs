@@ -19,6 +19,6 @@ pub fn bench(tt: &TranspositionTable, tokens: &[&str]) {
 
         let limits = TimeManagement::new(SearchLimit::Depth(depth), 0);
 
-        let _ = go(&pos, &limits, tt, &abort);
+        let _ = go::<true>(&pos, &limits, tt, &abort);
     }
 }

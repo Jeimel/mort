@@ -173,7 +173,7 @@ fn go(
 
     thread::scope(|s| {
         s.spawn(|| {
-            let (_, mov) = search::go(pos, &time, tt, abort);
+            let (_, mov) = search::go::<true>(pos, &time, tt, abort);
 
             match mov {
                 Some(mov) => println!("bestmove {}", mov),

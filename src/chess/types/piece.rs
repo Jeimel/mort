@@ -134,18 +134,18 @@ impl From<PieceType> for char {
     }
 }
 
-impl TryFrom<char> for PieceType {
+impl TryFrom<&u8> for PieceType {
     type Error = TypeParseError;
 
-    fn try_from(value: char) -> Result<Self, Self::Error> {
+    fn try_from(value: &u8) -> Result<Self, Self::Error> {
         match value.to_ascii_lowercase() {
-            'p' => Ok(PieceType::Pawn),
-            'n' => Ok(PieceType::Knight),
-            'b' => Ok(PieceType::Bishop),
-            'r' => Ok(PieceType::Rook),
-            'q' => Ok(PieceType::Queen),
-            'k' => Ok(PieceType::King),
-            _ => Err(TypeParseError::Piece(value)),
+            b'p' => Ok(PieceType::Pawn),
+            b'n' => Ok(PieceType::Knight),
+            b'b' => Ok(PieceType::Bishop),
+            b'r' => Ok(PieceType::Rook),
+            b'q' => Ok(PieceType::Queen),
+            b'k' => Ok(PieceType::King),
+            _ => Err(TypeParseError::Piece(char::from(*value))),
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::chess::FenParseError;
+use crate::chess::{FenParseError, TypeParseError};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -16,7 +16,7 @@ macro_rules! syntax_error {
 #[macro_export]
 macro_rules! ok_or {
     ($result:expr, $expected:expr, $found:expr) => {
-        $result.ok_or_else(|| syntax_error!($expected, $found))?
+        $result.ok_or_else(|| crate::syntax_error!($expected, $found))?
     };
 }
 
@@ -49,5 +49,23 @@ impl std::error::Error for Error {}
 impl From<FenParseError> for Error {
     fn from(value: FenParseError) -> Self {
         Self::Fen(value)
+    }
+}
+
+impl From<TypeParseError> for Error {
+    fn from(value: TypeParseError) -> Self {
+        Self::Uci(value.to_string())
+    }
+}
+
+impl From<std::fmt::Error> for Error {
+    fn from(value: std::fmt::Error) -> Self {
+        Self::Internal(value.to_string())
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::Internal(value.to_string())
     }
 }

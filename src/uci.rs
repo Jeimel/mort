@@ -12,15 +12,13 @@ use std::{
 
 use crate::{
     chess::{All, Color, MoveList, Position},
-    error::Error,
+    error::{Error, Result},
     evaluation::evaluate,
     ok_or,
     search::{self, SearchLimit, TimeManagement, TranspositionTable},
     syntax_error, unwrap_or,
     util::{bench, perft},
 };
-
-const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 mod default {
     pub const TT_SIZE: usize = 16;
@@ -57,8 +55,8 @@ fn spawn(abort: Arc<AtomicBool>) -> Receiver<String> {
     receiver
 }
 
-pub fn run(mut buffer: VecDeque<String>) {
-    let mut pos = Position::from_fen(START_POS).unwrap();
+pub fn run(mut buffer: VecDeque<String>) -> Result<()> {
+    let mut pos = Position::default();
     let mut tt = TranspositionTable::new();
     let mut overhead = default::OVERHEAD;
 
@@ -113,7 +111,7 @@ fn uci() {
     ));
 }
 
-fn option(tokens: &[&str], tt: &mut TranspositionTable, overhead: &mut u64) -> Result<(), Error> {
+fn option(tokens: &[&str], tt: &mut TranspositionTable, overhead: &mut u64) -> Result<()> {
     match tokens {
         ["name", "Hash", "value", x] => tt.resize(ok_or!(x.parse().ok(), "integer", x)),
         ["name", "Clear", "Hash"] => tt.clear(),
@@ -125,17 +123,15 @@ fn option(tokens: &[&str], tt: &mut TranspositionTable, overhead: &mut u64) -> R
     Ok(())
 }
 
-fn position(pos: &mut Position, tokens: &[&str]) -> Result<(), Error> {
+fn position(pos: &mut Position, tokens: &[&str]) -> Result<()> {
     let mut parts = tokens.splitn(2, |&t| t == "moves");
 
-    let fen = match parts.next() {
-        Some(["startpos"]) => START_POS,
-        Some(["fen", tokens @ ..]) => &tokens.join(" "),
+    *pos = match parts.next() {
+        Some(["startpos"]) => Position::default(),
+        Some(["fen", tokens @ ..]) => Position::from_fen(&tokens.join(" "))?,
         #[rustfmt::skip]
         _ => return Err(Error::Uci(syntax_error!("fen or startpos", tokens.join(" ")))),
     };
-
-    *pos = Position::from_fen(fen)?;
 
     for str in parts.next().unwrap_or_default() {
         let mut moves = MoveList::new();
@@ -151,7 +147,7 @@ fn position(pos: &mut Position, tokens: &[&str]) -> Result<(), Error> {
 }
 
 fn newgame(pos: &mut Position, tt: &mut TranspositionTable) {
-    *pos = Position::from_fen(START_POS).unwrap();
+    *pos = Position::default();
     tt.clear();
 }
 
@@ -161,9 +157,7 @@ fn go(
     overhead: u64,
     abort: &Arc<AtomicBool>,
     tokens: &[&str],
-) -> Result<(), Error> {
-    abort.store(false, Ordering::Relaxed);
-
+) -> Result<()> {
     let limit = parse_limits(tokens, pos.stm())?;
     if let SearchLimit::Perft(depth) = limit {
         return Ok(perft::<true>(&mut pos.clone(), depth)).map(|_| ());
@@ -173,7 +167,7 @@ fn go(
 
     thread::scope(|s| {
         s.spawn(|| {
-            let (_, mov) = search::go(pos, &time, tt, abort);
+            let (_, mov) = search::go::<true>(pos, &time, tt, abort);
 
             match mov {
                 Some(mov) => println!("bestmove {}", mov),
@@ -185,7 +179,7 @@ fn go(
     })
 }
 
-fn parse_limits(tokens: &[&str], stm: Color) -> Result<SearchLimit, Error> {
+fn parse_limits(tokens: &[&str], stm: Color) -> Result<SearchLimit> {
     if let ["infinite"] = tokens {
         return Ok(SearchLimit::Infinite);
     }

@@ -2,12 +2,14 @@ use std::{env, fs, path::Path};
 
 #[path = "./src/chess/types"]
 mod chess {
+    mod error;
     mod file;
     mod rank;
     mod slider;
     mod square;
     mod squareset;
 
+    pub use error::TypeParseError;
     pub use file::File;
     pub use rank::Rank;
     pub use slider::{BISHOP, ROOK, Slider, magic};
@@ -55,6 +57,7 @@ fn write_slider() {
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=src/chess/types/error.rs");
     println!("cargo:rerun-if-changed=src/chess/types/file.rs");
     println!("cargo:rerun-if-changed=src/chess/types/rank.rs");
     println!("cargo:rerun-if-changed=src/chess/types/slider.rs");

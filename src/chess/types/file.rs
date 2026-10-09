@@ -3,7 +3,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::chess::SquareSet;
+use crate::chess::{SquareSet, TypeParseError};
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]
@@ -31,6 +31,17 @@ impl Display for File {
             File::G => 'g',
             File::H => 'h',
         })
+    }
+}
+
+impl TryFrom<&u8> for File {
+    type Error = TypeParseError;
+
+    fn try_from(value: &u8) -> Result<Self, Self::Error> {
+        match value {
+            b'a'..=b'h' => Ok(Self::new(value - b'a').unwrap()),
+            _ => Err(TypeParseError::File(char::from(*value))),
+        }
     }
 }
 

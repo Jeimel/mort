@@ -4,7 +4,7 @@ use crate::{
         board::{Board, layout::PieceLayout, zobrist},
         position::GameState,
     },
-    ok_or, syntax_error,
+    ok_or,
 };
 
 pub type FenParseError = String;

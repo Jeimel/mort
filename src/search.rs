@@ -9,7 +9,10 @@ mod worker;
 pub use time::{SearchLimit, TimeManagement};
 pub use transposition::TranspositionTable;
 
-use std::{iter, sync::atomic::AtomicBool};
+use std::{
+    iter,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use crate::{
     chess::{Move, Position},
@@ -51,12 +54,14 @@ impl NodeType for NonPV {
     const ROOT: bool = false;
 }
 
-pub fn go(
+pub fn go<const REPORT: bool>(
     pos: &Position,
     time: &TimeManagement,
     tt: &TranspositionTable,
     abort: &AtomicBool,
 ) -> (i32, Option<Move>) {
+    abort.store(false, Ordering::Relaxed);
+
     let mut main = Worker::new(pos.clone(), tt.view(), time.clone(), abort, true);
 
     main.pos.reset_height();
@@ -67,7 +72,7 @@ pub fn go(
         MAX_DEPTH as i32
     };
 
-    iterative_deepening(&mut main, depth);
+    iterative_deepening::<REPORT>(&mut main, depth);
 
     let (score, mov) = main.result();
 
@@ -81,7 +86,7 @@ pub fn go(
     (-INF, mov)
 }
 
-fn iterative_deepening(worker: &mut Worker, max_depth: i32) {
+fn iterative_deepening<const REPORT: bool>(worker: &mut Worker, max_depth: i32) {
     let mut pv = PrincipalVariation::EMPTY;
 
     for depth in 1..=max_depth.min(MAX_PLY) {
@@ -93,7 +98,10 @@ fn iterative_deepening(worker: &mut Worker, max_depth: i32) {
         }
 
         worker.update_pv(&pv);
-        worker.report(depth);
+
+        if REPORT {
+            worker.report(depth);
+        }
 
         // We can skip further search if we found a forced mate
         if score.abs() > MATE {

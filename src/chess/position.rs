@@ -10,7 +10,7 @@ use crate::{
         Color, Move, MoveList,
         board::{Board, GenerationType, Key, PieceLayout},
     },
-    error::Error,
+    error::Result,
 };
 
 #[derive(Clone)]
@@ -28,20 +28,28 @@ impl Display for Position {
     }
 }
 
+impl Default for Position {
+    fn default() -> Self {
+        const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+        Self::from_fen(START_POS).expect("Start position should be valid")
+    }
+}
+
 impl Position {
-    pub fn from_fen(fen: &str) -> Result<Self, Error> {
+    pub fn from_fen(fen: &str) -> Result<Self> {
         let (board, stm, ply) = Board::from_fen(fen)?;
 
-        Ok(Position {
+        Ok(Self {
             board,
             stm,
-            ply: (ply - 1) * 2 + if stm == Color::White { 0 } else { 1 },
+            ply: (ply - 1) * 2 + [0, 1][stm],
             height: 0,
             history: Vec::new(),
         })
     }
 
-    pub fn fen(&self) -> Result<String, std::fmt::Error> {
+    pub fn fen(&self) -> std::result::Result<String, std::fmt::Error> {
         self.board.fen(self.stm, (self.ply + 2) / 2)
     }
 

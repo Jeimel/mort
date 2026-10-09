@@ -1,15 +1,26 @@
 #![feature(adt_const_params)]
 
 mod chess;
+#[cfg(feature = "datagen")]
+mod datagen;
 mod error;
 mod evaluation;
 mod search;
 mod uci;
 mod util;
 
-fn main() {
-    let buffer = std::env::args().skip(1).collect();
-    uci::run(buffer);
+use std::collections::VecDeque;
+
+use crate::error::Result;
+
+fn main() -> Result<()> {
+    let buffer: VecDeque<String> = std::env::args().skip(1).collect();
+
+    match buffer.front().map(String::as_str) {
+        #[cfg(feature = "datagen")]
+        Some("datagen") => datagen::run(buffer),
+        _ => uci::run(buffer),
+    }
 }
 
 const FEN: [&str; 6] = [

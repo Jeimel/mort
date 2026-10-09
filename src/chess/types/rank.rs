@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::chess::SquareSet;
+use crate::chess::{SquareSet, TypeParseError};
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]
@@ -28,6 +28,17 @@ impl Display for Rank {
             Rank::Seven => '7',
             Rank::Eight => '8',
         })
+    }
+}
+
+impl TryFrom<&u8> for Rank {
+    type Error = TypeParseError;
+
+    fn try_from(value: &u8) -> Result<Self, Self::Error> {
+        match value {
+            b'1'..=b'8' => Ok(Self::new(value - b'1').unwrap()),
+            _ => Err(TypeParseError::Rank(char::from(*value))),
+        }
     }
 }
 

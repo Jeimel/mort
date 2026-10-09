@@ -40,10 +40,10 @@ impl Position {
     pub fn from_fen(fen: &str) -> Result<Self> {
         let (board, stm, ply) = Board::from_fen(fen)?;
 
-        Ok(Position {
+        Ok(Self {
             board,
             stm,
-            ply: (ply - 1) * 2 + if stm == Color::White { 0 } else { 1 },
+            ply: (ply - 1) * 2 + [0, 1][stm],
             height: 0,
             history: Vec::new(),
         })

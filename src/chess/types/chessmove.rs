@@ -28,6 +28,10 @@ impl MoveFlag {
         Self(Self::PROMOTION | piece as u8)
     }
 
+    pub fn normal(self) -> bool {
+        matches!(self, Self::QUIET | Self::DOUBLE_PAWN | Self::CAPTURE)
+    }
+
     pub fn promotion(&self) -> bool {
         self.0 & Self::PROMOTION != 0
     }

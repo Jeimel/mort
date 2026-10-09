@@ -7,8 +7,7 @@ impl Board {
     pub fn pseudo_legal(&self, mov: Move, color: Color) -> bool {
         let flag = mov.flag();
 
-        if !(flag == MoveFlag::QUIET || flag == MoveFlag::CAPTURE || flag == MoveFlag::DOUBLE_PAWN)
-        {
+        if !flag.normal() {
             let mut moves = MoveList::new();
             self.generate::<All>(&mut moves, color);
 

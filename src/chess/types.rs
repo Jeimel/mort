@@ -1,6 +1,7 @@
 mod castling;
 mod chessmove;
 mod color;
+mod error;
 mod file;
 mod movelist;
 mod piece;
@@ -12,6 +13,7 @@ mod squareset;
 pub use castling::Castling;
 pub use chessmove::{Move, MoveFlag};
 pub use color::Color;
+pub use error::TypeParseError;
 pub use file::File;
 pub use movelist::{MoveList, MoveListEntry};
 pub use piece::{Piece, PieceType};
@@ -19,26 +21,3 @@ pub use rank::Rank;
 pub use slider::{BISHOP, ROOK, magic};
 pub use square::Square;
 pub use squareset::SquareSet;
-
-use std::{error::Error, fmt::Display};
-
-#[derive(Debug)]
-pub enum TypeParseError {
-    Piece(char),
-    PieceType(char),
-    Color(String),
-}
-
-impl Display for TypeParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TypeParseError::Piece(symbol) => write!(f, "Invalid symbol: {}", symbol),
-            TypeParseError::Color(symbol) => write!(f, "Invalid symbol: {}", symbol),
-            TypeParseError::PieceType(symbol) => {
-                write!(f, "Invalid symbol: {}", symbol)
-            }
-        }
-    }
-}
-
-impl Error for TypeParseError {}

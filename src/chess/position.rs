@@ -28,6 +28,14 @@ impl Display for Position {
     }
 }
 
+impl Default for Position {
+    fn default() -> Self {
+        const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+        Self::from_fen(START_POS).expect("Start position should be valid")
+    }
+}
+
 impl Position {
     pub fn from_fen(fen: &str) -> Result<Self> {
         let (board, stm, ply) = Board::from_fen(fen)?;

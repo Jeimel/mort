@@ -12,6 +12,11 @@ pub fn quiescence(worker: &mut Worker, mut alpha: i32, beta: i32) -> i32 {
         worker.check_limits();
     }
 
+    // We can't search any deeper without exceeding our stack limits
+    if worker.pos.height() >= MAX_DEPTH - 1 {
+        return evaluate(&worker.pos);
+    }
+
     let check = worker.pos.check();
 
     if worker.abort() || worker.pos.draw() {

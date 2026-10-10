@@ -20,7 +20,9 @@ impl Position {
                 continue;
             }
 
-            if distance < self.ply {
+            // A single repetition within the search tree is already a draw,
+            // while positions before the root have to repeat threefold
+            if distance < self.height {
                 return true;
             }
 

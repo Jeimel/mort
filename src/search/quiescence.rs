@@ -12,11 +12,17 @@ pub fn quiescence(worker: &mut Worker, mut alpha: i32, beta: i32) -> i32 {
         worker.check_limits();
     }
 
-    let check = worker.pos.check();
-
-    if worker.abort() || worker.pos.draw() {
-        return if !check { evaluate(&worker.pos) } else { DRAW };
+    // We can't search any deeper without exceeding our stack limits
+    if worker.pos.height() >= MAX_DEPTH - 1 {
+        return evaluate(&worker.pos);
     }
+
+    // The score of an aborted search is discarded anyway
+    if worker.abort() || worker.pos.draw() {
+        return DRAW;
+    }
+
+    let check = worker.pos.check();
 
     // We calculate a static evaluation (stand-pat) as lower bound.
     // We skip stand-pat if we are in check, as we are searching every move in that case

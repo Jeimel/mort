@@ -10,9 +10,12 @@ impl<const MAX: i16> ButterflyBoard<MAX> {
     pub const EMPTY: Self = Self([0; BUTTERFLY_SIZE]);
 
     pub fn update(&mut self, mov: Move, bonus: i16) {
-        let bonus = bonus.clamp(-MAX, MAX);
+        let entry = &mut self.0[mov.inner() as usize];
+        let bonus = i32::from(bonus.clamp(-MAX, MAX));
 
-        self.0[mov.inner() as usize] = bonus;
+        // Gravity scales the bonus down as the entry approaches the limit,
+        // which keeps it within `[-MAX, MAX]` and lets old values decay
+        *entry += (bonus - i32::from(*entry) * bonus.abs() / i32::from(MAX)) as i16;
     }
 }
 

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    chess::{All, Move, MoveList},
+    chess::Move,
     evaluation::{DRAW, INF, mate_in, mated_in},
     search::{
         MAX_DEPTH, MAX_PLY, NodeType, NonPV, PV, picker::MovePicker, quiescence,
@@ -110,9 +110,6 @@ pub fn pvs<TYPE: NodeType>(
     } else {
         None
     };
-
-    let mut moves = MoveList::new();
-    worker.pos.generate::<All>(&mut moves);
 
     let check = worker.pos.check();
 

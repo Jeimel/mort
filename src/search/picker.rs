@@ -52,9 +52,8 @@ impl MovePicker {
         }
 
         if self.stage == Stage::YieldCaptures {
-            if let Some(entry) = self.moves.get(self.index) {
-                self.index += 1;
-                return Some(entry.mov);
+            if let Some(mov) = self.yield_next() {
+                return Some(mov);
             }
 
             self.stage = Stage::GenerateQuiets;
@@ -71,9 +70,8 @@ impl MovePicker {
         }
 
         if self.stage == Stage::YieldQuiets {
-            if let Some(entry) = self.moves.get(self.index) {
-                self.index += 1;
-                return Some(entry.mov);
+            if let Some(mov) = self.yield_next() {
+                return Some(mov);
             }
 
             self.stage = Stage::Done;
@@ -84,6 +82,18 @@ impl MovePicker {
 
     pub fn set_quiet(&mut self, quiet: bool) {
         self.quiet = quiet;
+    }
+
+    fn yield_next(&mut self) -> Option<Move> {
+        while let Some(entry) = self.moves.get(self.index) {
+            self.index += 1;
+
+            if Some(entry.mov) != self.tt {
+                return Some(entry.mov);
+            }
+        }
+
+        None
     }
 
     fn score_captures(layout: &PieceLayout, moves: &mut [MoveListEntry]) {

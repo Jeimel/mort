@@ -45,7 +45,7 @@ impl MoveFlag {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Move(NonZeroU16);
 
 impl Display for Move {

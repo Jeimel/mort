@@ -7,8 +7,8 @@ use crate::{
     chess::{Move, Position},
     evaluation::uci_score,
     search::{
-        TimeManagement, history::ButterflyHistory, pv::PrincipalVariation, time::nps,
-        transposition::TranspositionView,
+        MAX_DEPTH, TimeManagement, history::ButterflyHistory, pv::PrincipalVariation,
+        stack::StackEntry, time::nps, transposition::TranspositionView,
     },
 };
 
@@ -29,6 +29,7 @@ impl Info {
 pub struct Worker<'a> {
     pub(super) pos: Position,
     pub(super) tt: TranspositionView<'a>,
+    pub(super) stack: [StackEntry; MAX_DEPTH],
     pub(super) history: ButterflyHistory,
     time: TimeManagement,
     info: Info,
@@ -47,6 +48,7 @@ impl<'a> Worker<'a> {
         Self {
             pos,
             tt,
+            stack: [StackEntry::EMPTY; MAX_DEPTH],
             history: ButterflyHistory::EMPTY,
             time,
             info: Info::new(),

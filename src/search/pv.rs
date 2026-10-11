@@ -115,8 +115,33 @@ pub fn pvs<TYPE: NodeType>(
     let eval = if check { -INF } else { evaluate(&worker.pos) };
     let margin = 80 * depth;
 
+    worker.stack[height].eval = eval;
+
     if !TYPE::PV && !check && depth <= 8 && beta.abs() < MATE - MAX_PLY && eval >= beta + margin {
         return eval;
+    }
+
+    let mut local_pv = PrincipalVariation::EMPTY;
+
+    if !TYPE::PV
+        && !check
+        && depth >= 3
+        && eval >= beta
+        && worker.stack[height - 1].mov.is_some()
+        && worker.pos.non_pawn_material()
+    {
+        let reduction = 3 + depth / 3;
+
+        worker.stack[height].mov = None;
+
+        worker.pos.make_null_move();
+        let score = -pvs::<NonPV>(worker, &mut local_pv, -beta, -beta + 1, depth - reduction);
+        worker.pos.unmake_null_move();
+
+        // A mate found after passing our turn is not proven, so we don't return it
+        if score >= beta {
+            return if score >= MATE { beta } else { score };
+        }
     }
 
     let mut best_score = -INF;
@@ -124,7 +149,6 @@ pub fn pvs<TYPE: NodeType>(
 
     let mut quiets: ArrayVec<Move, MAX_MOVES> = ArrayVec::new();
 
-    let mut local_pv = PrincipalVariation::EMPTY;
     let mut picker = MovePicker::new(tt_move);
 
     let mut score = best_score;
@@ -136,6 +160,8 @@ pub fn pvs<TYPE: NodeType>(
         }
 
         legal += 1;
+
+        worker.stack[height].mov = Some(mov);
 
         worker.pos.make_move(mov);
 

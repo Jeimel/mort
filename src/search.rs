@@ -129,5 +129,10 @@ fn iterative_deepening<const REPORT: bool>(worker: &mut Worker, max_depth: i32) 
         if score.abs() > MATE {
             break;
         }
+
+        // We don't start an iteration, which we most likely can't finish
+        if worker.main() && worker.check_soft() {
+            break;
+        }
     }
 }

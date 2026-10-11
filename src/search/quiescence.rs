@@ -9,7 +9,7 @@ pub fn quiescence(worker: &mut Worker, mut alpha: i32, beta: i32) -> i32 {
 
     // Again, we only check the constraints on the main search thread
     if worker.main() {
-        worker.check_limits();
+        worker.check_hard();
     }
 
     // We can't search any deeper without exceeding our stack limits
@@ -51,6 +51,7 @@ pub fn quiescence(worker: &mut Worker, mut alpha: i32, beta: i32) -> i32 {
 
         legal += 1;
 
+        worker.increment_nodes();
         worker.pos.make_move(mov);
         let score = -quiescence(worker, -beta, -alpha);
         worker.pos.unmake_move(mov);
@@ -69,8 +70,6 @@ pub fn quiescence(worker: &mut Worker, mut alpha: i32, beta: i32) -> i32 {
 
         alpha = score;
     }
-
-    worker.update_nodes(legal);
 
     if legal == 0 && check {
         return mated_in(worker.pos.height());

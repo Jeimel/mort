@@ -56,6 +56,7 @@ impl NodeType for NonPV {
 }
 
 pub struct SearchResult {
+    #[cfg_attr(not(feature = "datagen"), allow(dead_code))]
     pub score: i32,
     pub best_move: Option<Move>,
     pub nodes: u64,

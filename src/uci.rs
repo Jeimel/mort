@@ -85,7 +85,7 @@ pub fn run(mut buffer: VecDeque<String>) -> Result<()> {
             ["ucinewgame"] => newgame(&mut pos, &mut tt),
             ["isready"] => println!("readyok"),
             ["go", tokens @ ..] => unwrap_or!(go(&pos, &tt, overhead, &abort, tokens)),
-            ["bench", tokens @ ..] => bench(&tt, tokens),
+            ["bench", tokens @ ..] => unwrap_or!(bench(&mut tt, tokens)),
             ["d"] => println!("{}", pos),
             ["eval"] => println!("score cp {}", evaluate(&pos)),
             [] => (),

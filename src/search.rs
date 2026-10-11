@@ -64,7 +64,7 @@ pub struct SearchResult {
 
 impl SearchResult {
     pub fn nps(&self) -> u64 {
-        (self.nodes as u128 * 1_000_000 / self.time.as_micros().max(1)) as u64
+        time::nps(self.nodes, self.time)
     }
 }
 

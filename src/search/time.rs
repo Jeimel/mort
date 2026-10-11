@@ -36,6 +36,10 @@ impl TimeManagement {
         self.limit.clone()
     }
 
+    pub fn elapsed(&self) -> Duration {
+        self.start.elapsed()
+    }
+
     pub fn check(&self, nodes: u64) -> bool {
         match self.limit {
             SearchLimit::Infinite | SearchLimit::Depth(_) => false,

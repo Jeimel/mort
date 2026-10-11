@@ -1,6 +1,7 @@
 use std::{
     fmt::Display,
     sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
 };
 
 use crate::{
@@ -94,5 +95,13 @@ impl<'a> Worker<'a> {
 
     pub fn result(&self) -> (i32, Option<Move>) {
         self.info.pv.result()
+    }
+
+    pub fn nodes(&self) -> u64 {
+        self.info.nodes
+    }
+
+    pub fn elapsed(&self) -> Duration {
+        self.time.elapsed()
     }
 }

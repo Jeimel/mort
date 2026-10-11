@@ -10,7 +10,7 @@ use std::{
 use crate::{
     chess::Position,
     error::{Error, Result},
-    search::{self, SearchLimit, TimeManagement, TranspositionTable},
+    search::{self, SearchLimit, SearchResult, TimeManagement, TranspositionTable},
 };
 
 const TT_SIZE: usize = 16;
@@ -63,9 +63,13 @@ pub fn run(mut buffer: VecDeque<String>) -> Result<()> {
             }
 
             let time = TimeManagement::new(SearchLimit::Nodes(NODES), 0);
-            let (score, best) = search::go::<false>(&pos, &time, &tt, &abort);
+            let SearchResult {
+                score, best_move, ..
+            } = search::go::<false>(&pos, &time, &tt, &abort);
 
-            if !(score.abs() <= MAX_SCORE && best.is_some_and(|best| best.flag().normal())) {
+            if !(score.abs() <= MAX_SCORE
+                && best_move.is_some_and(|best_move| best_move.flag().normal()))
+            {
                 continue;
             }
 

@@ -167,9 +167,9 @@ fn go(
 
     thread::scope(|s| {
         s.spawn(|| {
-            let (_, mov) = search::go::<true>(pos, &time, tt, abort);
+            let result = search::go::<true>(pos, &time, tt, abort);
 
-            match mov {
+            match result.best_move {
                 Some(mov) => println!("bestmove {}", mov),
                 _ => panic!("{}", Error::Internal("No move found".to_string())),
             };

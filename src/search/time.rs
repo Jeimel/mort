@@ -1,5 +1,9 @@
 use std::time::{Duration, Instant};
 
+pub fn nps(nodes: u64, time: Duration) -> u64 {
+    (nodes as u128 * 1_000_000 / time.as_micros().max(1)) as u64
+}
+
 #[derive(Clone)]
 pub enum SearchLimit {
     Infinite,
@@ -34,6 +38,10 @@ impl TimeManagement {
 
     pub fn limit(&self) -> SearchLimit {
         self.limit.clone()
+    }
+
+    pub fn elapsed(&self) -> Duration {
+        self.start.elapsed()
     }
 
     pub fn check(&self, nodes: u64) -> bool {

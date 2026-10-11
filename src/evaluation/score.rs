@@ -13,3 +13,13 @@ pub const fn mated_in(ply: usize) -> i32 {
     debug_assert!(ply <= MAX_DEPTH);
     -INF + ply as i32
 }
+
+pub fn uci_score(score: i32) -> String {
+    if score >= MATE {
+        format!("mate {}", (INF - score + 1) / 2)
+    } else if score <= -MATE {
+        format!("mate {}", -(INF + score) / 2)
+    } else {
+        format!("cp {}", score)
+    }
+}

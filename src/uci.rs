@@ -85,7 +85,7 @@ pub fn run(mut buffer: VecDeque<String>) -> Result<()> {
             ["ucinewgame"] => newgame(&mut pos, &mut tt),
             ["isready"] => println!("readyok"),
             ["go", tokens @ ..] => unwrap_or!(go(&pos, &tt, overhead, &abort, tokens)),
-            ["bench", tokens @ ..] => bench(&tt, tokens),
+            ["bench", tokens @ ..] => unwrap_or!(bench(&mut tt, tokens)),
             ["d"] => println!("{}", pos),
             ["eval"] => println!("score cp {}", evaluate(&pos)),
             [] => (),
@@ -167,9 +167,9 @@ fn go(
 
     thread::scope(|s| {
         s.spawn(|| {
-            let (_, mov) = search::go::<true>(pos, &time, tt, abort);
+            let result = search::go::<true>(pos, &time, tt, abort);
 
-            match mov {
+            match result.best_move {
                 Some(mov) => println!("bestmove {}", mov),
                 _ => panic!("{}", Error::Internal("No move found".to_string())),
             };

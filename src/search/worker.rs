@@ -1,12 +1,13 @@
 use std::{
-    fmt::Display,
     sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
 };
 
 use crate::{
     chess::{Move, Position},
+    evaluation::uci_score,
     search::{
-        TimeManagement, history::ButterflyHistory, pv::PrincipalVariation,
+        TimeManagement, history::ButterflyHistory, pv::PrincipalVariation, time::nps,
         transposition::TranspositionView,
     },
 };
@@ -14,18 +15,6 @@ use crate::{
 struct Info {
     nodes: u64,
     pv: PrincipalVariation,
-}
-
-impl Display for Info {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "score cp {} nodes {} pv {}",
-            self.pv.score(),
-            self.nodes,
-            self.pv
-        )
-    }
 }
 
 impl Info {
@@ -89,10 +78,28 @@ impl<'a> Worker<'a> {
     }
 
     pub fn report(&self, depth: i32) {
-        println!("info depth {} {}", depth, self.info);
+        let (nodes, time) = (self.info.nodes, self.elapsed());
+
+        println!(
+            "info depth {} score {} nodes {} nps {} time {} pv {}",
+            depth,
+            uci_score(self.info.pv.score()),
+            nodes,
+            nps(nodes, time),
+            time.as_millis(),
+            self.info.pv
+        );
     }
 
     pub fn result(&self) -> (i32, Option<Move>) {
         self.info.pv.result()
+    }
+
+    pub fn nodes(&self) -> u64 {
+        self.info.nodes
+    }
+
+    pub fn elapsed(&self) -> Duration {
+        self.time.elapsed()
     }
 }

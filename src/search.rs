@@ -12,6 +12,7 @@ pub use transposition::TranspositionTable;
 use std::{
     iter,
     sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
 };
 
 use crate::{
@@ -54,12 +55,26 @@ impl NodeType for NonPV {
     const ROOT: bool = false;
 }
 
+pub struct SearchResult {
+    #[cfg_attr(not(feature = "datagen"), allow(dead_code))]
+    pub score: i32,
+    pub best_move: Option<Move>,
+    pub nodes: u64,
+    pub time: Duration,
+}
+
+impl SearchResult {
+    pub fn nps(&self) -> u64 {
+        time::nps(self.nodes, self.time)
+    }
+}
+
 pub fn go<const REPORT: bool>(
     pos: &Position,
     time: &TimeManagement,
     tt: &TranspositionTable,
     abort: &AtomicBool,
-) -> (i32, Option<Move>) {
+) -> SearchResult {
     abort.store(false, Ordering::Relaxed);
 
     let mut main = Worker::new(pos.clone(), tt.view(), time.clone(), abort, true);
@@ -74,16 +89,22 @@ pub fn go<const REPORT: bool>(
 
     iterative_deepening::<REPORT>(&mut main, depth);
 
-    let (score, mov) = main.result();
+    let (mut score, mut best_move) = main.result();
 
-    if mov.is_some() {
-        return (score, mov);
+    // If no iteration finished, we fall back to the first legal move
+    if best_move.is_none() {
+        let mut picker = MovePicker::new(None);
+
+        score = -INF;
+        best_move = iter::from_fn(|| picker.next(&main)).find(|&mov| main.pos.legal(mov));
     }
 
-    let mut picker = MovePicker::new(None);
-    let mov = iter::from_fn(|| picker.next(&main)).find(|&mov| main.pos.legal(mov));
-
-    (-INF, mov)
+    SearchResult {
+        score,
+        best_move,
+        nodes: main.nodes(),
+        time: main.elapsed(),
+    }
 }
 
 fn iterative_deepening<const REPORT: bool>(worker: &mut Worker, max_depth: i32) {

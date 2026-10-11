@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     chess::{MAX_MOVES, Move},
-    evaluation::{DRAW, INF, mate_in, mated_in},
+    evaluation::{DRAW, INF, MATE, evaluate, mate_in, mated_in},
     search::{
         MAX_DEPTH, MAX_PLY, NodeType, NonPV, PV, picker::MovePicker, quiescence,
         transposition::Bound, worker::Worker,
@@ -112,6 +112,12 @@ pub fn pvs<TYPE: NodeType>(
     };
 
     let check = worker.pos.check();
+    let eval = if check { -INF } else { evaluate(&worker.pos) };
+    let margin = 80 * depth;
+
+    if !TYPE::PV && !check && depth <= 8 && beta.abs() < MATE - MAX_PLY && eval >= beta + margin {
+        return eval;
+    }
 
     let mut best_score = -INF;
     let mut best_move = None;

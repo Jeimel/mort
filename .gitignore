@@ -1,2 +1,4 @@
 target/
-cutechess/
+fastchess/
+
+config.json

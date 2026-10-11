@@ -6,7 +6,7 @@ NAME=mort
 
 REPO_URL=$(git remote get-url origin)
 REPO_NAME=$(basename -s .git "$REPO_URL")
-CLONE_DIR="./cutechess/$REPO_NAME"
+CLONE_DIR="./fastchess/$REPO_NAME"
 
 if [ -d "$CLONE_DIR/.git" ]; then
     git -C "$CLONE_DIR" fetch origin
@@ -19,12 +19,12 @@ fi
 make build
 make -C "$CLONE_DIR" build
 
-./cutechess/cutechess-cli \
+./fastchess/fastchess/fastchess \
     -engine name=$(git branch --show-current) cmd=target/release/$NAME \
     -engine name=baseline cmd="$CLONE_DIR/target/release/$NAME" \
     -each proto=uci tc=10+0.1 \
-    -games 2 \
+    -repeat \
     -rounds 5000 \
-    -concurrency 4 \
-    -openings file=./cutechess/book-ply8-unifen-Q-0.0-0.25.pgn format=pgn order=random \
-    -sprt elo0=0.0 elo1=5.0 alpha=0.05 beta=0.05 \
+    -concurrency 6 \
+    -openings file=./fastchess/book-ply8-unifen-Q-0.0-0.25.pgn format=pgn order=random \
+    -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 model=logistic

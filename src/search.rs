@@ -2,6 +2,7 @@ mod history;
 mod picker;
 mod pv;
 mod quiescence;
+mod stack;
 mod time;
 mod transposition;
 mod worker;

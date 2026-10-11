@@ -115,6 +115,8 @@ pub fn pvs<TYPE: NodeType>(
     let eval = if check { -INF } else { evaluate(&worker.pos) };
     let margin = 80 * depth;
 
+    worker.stack[height].eval = eval;
+
     if !TYPE::PV && !check && depth <= 8 && beta.abs() < MATE - MAX_PLY && eval >= beta + margin {
         return eval;
     }
@@ -136,6 +138,8 @@ pub fn pvs<TYPE: NodeType>(
         }
 
         legal += 1;
+
+        worker.stack[height].mov = Some(mov);
 
         worker.pos.make_move(mov);
 

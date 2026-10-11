@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{chess::Move, util::ArrayVec};
 
-const MAX_MOVES: usize = 218;
+pub const MAX_MOVES: usize = 218;
 
 #[macro_export]
 macro_rules! push_loop {

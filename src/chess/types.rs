@@ -15,7 +15,7 @@ pub use chessmove::{Move, MoveFlag};
 pub use color::Color;
 pub use error::TypeParseError;
 pub use file::File;
-pub use movelist::{MoveList, MoveListEntry};
+pub use movelist::{MAX_MOVES, MoveList, MoveListEntry};
 pub use piece::{Piece, PieceType};
 pub use rank::Rank;
 pub use slider::{BISHOP, ROOK, magic};

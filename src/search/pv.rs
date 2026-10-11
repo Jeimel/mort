@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    chess::Move,
+    chess::{MAX_MOVES, Move},
     evaluation::{DRAW, INF, mate_in, mated_in},
     search::{
         MAX_DEPTH, MAX_PLY, NodeType, NonPV, PV, picker::MovePicker, quiescence,
@@ -116,6 +116,8 @@ pub fn pvs<TYPE: NodeType>(
     let mut best_score = -INF;
     let mut best_move = None;
 
+    let mut quiets: ArrayVec<Move, MAX_MOVES> = ArrayVec::new();
+
     let mut local_pv = PrincipalVariation::EMPTY;
     let mut picker = MovePicker::new(tt_move);
 
@@ -143,6 +145,10 @@ pub fn pvs<TYPE: NodeType>(
 
         debug_assert!(-INF < score && score < INF);
 
+        if !mov.tactical() {
+            quiets.push(mov);
+        }
+
         best_score = best_score.max(score);
 
         if score <= alpha {
@@ -169,10 +175,11 @@ pub fn pvs<TYPE: NodeType>(
         return if check { mated_in(height) } else { 0 };
     }
 
-    if let Some(mov) = best_move
-        && !mov.tactical()
+    if let Some(best_move) = best_move
+        && !best_move.tactical()
+        && best_score >= beta
     {
-        worker.update_quiet_history(mov, depth as i16);
+        worker.update_quiet_history(best_move, &quiets, depth as i16);
     }
 
     let bound = if best_score >= beta {

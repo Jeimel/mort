@@ -17,7 +17,7 @@ use std::fmt::Display;
 use crate::chess::{
     Color, Move, MoveFlag,
     PieceType::{self, Bishop, King, Knight, Pawn, Queen, Rook},
-    Rank, Square,
+    Rank, Square, SquareSet,
     position::GameState,
 };
 
@@ -42,6 +42,12 @@ impl Board {
 
     const QUEEN_CASTLE_START: [Square; 2] = [Square::D1, Square::D8];
     const QUEEN_CASTLE_TARGET: [Square; 2] = [Square::A1, Square::A8];
+
+    pub fn non_pawn_material(&self, color: Color) -> bool {
+        let pieces = self.layout.color(color) - self.layout.get(Pawn) - self.layout.get(King);
+
+        !pieces.is_empty()
+    }
 
     pub fn make_move(&mut self, mov: Move, color: Color) {
         let start = mov.start();
@@ -144,6 +150,23 @@ impl Board {
         debug_assert!(
             self.layout.attackers(self.layout.king(color), color, self.layout.all()).is_empty()
         );
+    }
+
+    pub fn make_null_move(&mut self, color: Color) {
+        self.state.zobrist ^= zobrist::SIDE;
+
+        // The en passant square is only valid for a single move
+        if let Some(target) = self.state.en_passant.take() {
+            self.state.zobrist ^= zobrist::EN_PASSANT[target.file()];
+        }
+
+        self.state.rule50_ply += 1;
+        self.state.capture = None;
+
+        // We have to update for the next side to move only, which can't be
+        // in check, as we are not allowed to pass while being in check
+        self.state.set_blockers(!color, &self.layout);
+        self.state.checkers = SquareSet::EMPTY;
     }
 
     pub fn unmake_move(&mut self, mov: Move, color: Color, state: GameState) {

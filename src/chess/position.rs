@@ -65,6 +65,10 @@ impl Position {
         self.board.state.zobrist
     }
 
+    pub fn non_pawn_material(&self) -> bool {
+        self.board.non_pawn_material(self.stm)
+    }
+
     pub fn height(&self) -> usize {
         self.height
     }
@@ -102,8 +106,30 @@ impl Position {
         self.ply -= 1;
         self.height -= 1;
 
-        self.board
-            .unmake_move(mov, self.stm, self.history.pop().unwrap());
+        let previous = self.history.pop().unwrap();
+        self.board.unmake_move(mov, self.stm, previous);
+    }
+
+    pub fn make_null_move(&mut self) {
+        debug_assert!(!self.check());
+
+        self.history.push(self.board.state.clone());
+
+        self.board.make_null_move(self.stm);
+
+        self.stm = !self.stm;
+        self.ply += 1;
+        self.height += 1;
+    }
+
+    pub fn unmake_null_move(&mut self) {
+        debug_assert!(!self.history.is_empty());
+
+        self.stm = !self.stm;
+        self.ply -= 1;
+        self.height -= 1;
+
+        self.board.state = self.history.pop().unwrap();
     }
 
     pub fn check(&self) -> bool {

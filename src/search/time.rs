@@ -20,7 +20,6 @@ pub struct TimeManagement {
     start: Instant,
     soft: Duration,
     hard: Duration,
-    calls: u64,
 }
 
 impl TimeManagement {
@@ -41,7 +40,6 @@ impl TimeManagement {
             start: Instant::now(),
             soft: Duration::from_millis(soft),
             hard: Duration::from_millis(hard),
-            calls: 0,
         }
     }
 
@@ -53,13 +51,11 @@ impl TimeManagement {
         self.start.elapsed()
     }
 
-    pub fn hard(&mut self, nodes: u64) -> bool {
-        self.calls += 1;
-
+    pub fn hard(&self, nodes: u64) -> bool {
         match self.limit {
             SearchLimit::Infinite | SearchLimit::Depth(_) => false,
             SearchLimit::Nodes(max) => nodes > max,
-            _ => self.calls & 2047 == 0 && self.start.elapsed() >= self.hard,
+            _ => nodes & 2047 == 0 && self.start.elapsed() >= self.hard,
         }
     }
 

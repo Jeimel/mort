@@ -61,7 +61,7 @@ impl<'a> Worker<'a> {
         self.abort.load(Ordering::Relaxed)
     }
 
-    pub fn check_hard(&mut self) {
+    pub fn check_hard(&self) {
         if self.time.hard(self.info.nodes) {
             self.abort.store(true, Ordering::Relaxed);
         }
@@ -75,8 +75,8 @@ impl<'a> Worker<'a> {
         self.main
     }
 
-    pub fn update_nodes(&mut self, nodes: u64) {
-        self.info.nodes += nodes;
+    pub fn increment_nodes(&mut self) {
+        self.info.nodes += 1;
     }
 
     pub fn update_pv(&mut self, pv: &PrincipalVariation) {

@@ -163,6 +163,7 @@ pub fn pvs<TYPE: NodeType>(
 
         worker.stack[height].mov = Some(mov);
 
+        worker.increment_nodes();
         worker.pos.make_move(mov);
 
         if !TYPE::PV || legal > 1 {
@@ -200,8 +201,6 @@ pub fn pvs<TYPE: NodeType>(
 
         break;
     }
-
-    worker.update_nodes(legal);
 
     if legal == 0 {
         return if check { mated_in(height) } else { 0 };

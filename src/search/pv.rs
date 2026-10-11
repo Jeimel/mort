@@ -70,7 +70,7 @@ pub fn pvs<TYPE: NodeType>(
 
     // We only check the constraints on the main search thread
     if worker.main() {
-        worker.check_limits();
+        worker.check_hard();
     }
 
     let height = worker.pos.height();

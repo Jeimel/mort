@@ -18,21 +18,30 @@ pub enum SearchLimit {
 pub struct TimeManagement {
     limit: SearchLimit,
     start: Instant,
-    bound: Duration,
+    soft: Duration,
+    hard: Duration,
+    calls: u64,
 }
 
 impl TimeManagement {
     pub fn new(limit: SearchLimit, overhead: u64) -> Self {
-        let millis = match limit {
-            SearchLimit::Time(millis) => millis,
-            SearchLimit::Bonus(main, inc) => (main / 20 + inc / 2).saturating_sub(overhead).max(1),
-            _ => u64::MAX,
+        let (soft, hard) = match limit {
+            SearchLimit::Time(millis) => (millis, millis),
+            SearchLimit::Bonus(main, inc) => {
+                let soft = main / 20 + inc / 2;
+                let hard = (3 * soft).min(main / 2).saturating_sub(overhead).max(1);
+
+                (soft.saturating_sub(overhead).max(1).min(hard), hard)
+            }
+            _ => (u64::MAX, u64::MAX),
         };
 
         Self {
             limit,
             start: Instant::now(),
-            bound: Duration::from_millis(millis),
+            soft: Duration::from_millis(soft),
+            hard: Duration::from_millis(hard),
+            calls: 0,
         }
     }
 
@@ -44,11 +53,17 @@ impl TimeManagement {
         self.start.elapsed()
     }
 
-    pub fn check(&self, nodes: u64) -> bool {
+    pub fn hard(&mut self, nodes: u64) -> bool {
+        self.calls += 1;
+
         match self.limit {
             SearchLimit::Infinite | SearchLimit::Depth(_) => false,
             SearchLimit::Nodes(max) => nodes > max,
-            _ => nodes & 2047 == 2047 && self.start.elapsed() >= self.bound,
+            _ => self.calls & 2047 == 0 && self.start.elapsed() >= self.hard,
         }
+    }
+
+    pub fn soft(&self) -> bool {
+        self.start.elapsed() >= self.soft
     }
 }

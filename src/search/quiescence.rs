@@ -9,7 +9,7 @@ pub fn quiescence(worker: &mut Worker, mut alpha: i32, beta: i32) -> i32 {
 
     // Again, we only check the constraints on the main search thread
     if worker.main() {
-        worker.check_limits();
+        worker.check_hard();
     }
 
     // We can't search any deeper without exceeding our stack limits

@@ -61,10 +61,14 @@ impl<'a> Worker<'a> {
         self.abort.load(Ordering::Relaxed)
     }
 
-    pub fn check_limits(&self) {
-        if self.time.check(self.info.nodes) {
+    pub fn check_hard(&mut self) {
+        if self.time.hard(self.info.nodes) {
             self.abort.store(true, Ordering::Relaxed);
         }
+    }
+
+    pub fn check_soft(&self) -> bool {
+        self.time.soft()
     }
 
     pub fn main(&self) -> bool {

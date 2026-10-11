@@ -1,7 +1,7 @@
 mod score;
 mod tables;
 
-pub use score::{DRAW, INF, MATE, mate_in, mated_in};
+pub use score::{DRAW, INF, MATE, mate_in, mated_in, uci_score};
 
 use tables::{ENDGAME_TABLE, MIDGAME_TABLE};
 

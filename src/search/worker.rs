@@ -5,6 +5,7 @@ use std::{
 
 use crate::{
     chess::{Move, Position},
+    evaluation::uci_score,
     search::{
         TimeManagement, history::ButterflyHistory, pv::PrincipalVariation, time::nps,
         transposition::TranspositionView,
@@ -80,9 +81,9 @@ impl<'a> Worker<'a> {
         let (nodes, time) = (self.info.nodes, self.elapsed());
 
         println!(
-            "info depth {} score cp {} nodes {} nps {} time {} pv {}",
+            "info depth {} score {} nodes {} nps {} time {} pv {}",
             depth,
-            self.info.pv.score(),
+            uci_score(self.info.pv.score()),
             nodes,
             nps(nodes, time),
             time.as_millis(),

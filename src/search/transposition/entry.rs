@@ -24,6 +24,7 @@ impl TranspositionInternal {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct TranspositionEntry {
     pub(super) key: u16,
     pub(super) mov: Option<Move>,

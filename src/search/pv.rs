@@ -176,6 +176,10 @@ pub fn pvs<TYPE: NodeType>(
 
         worker.pos.unmake_move(mov);
 
+        if worker.abort() {
+            return DRAW;
+        }
+
         debug_assert!(-INF < score && score < INF);
 
         if !mov.tactical() {

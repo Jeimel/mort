@@ -25,8 +25,9 @@ impl TranspositionView<'_> {
 
         // We keep the entry, if
         // 1. the entry is occupied by the same position,
-        // 2. and the existing entry is at least as deep
-        if equal && entry.depth() >= depth {
+        // 2. the new entry is not exact,
+        // 3. and the existing entry is much deeper
+        if equal && bound != Bound::Exact && entry.depth() >= depth + 4 {
             return;
         }
 

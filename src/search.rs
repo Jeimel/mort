@@ -76,6 +76,7 @@ pub fn go<const REPORT: bool>(
     tt: &TranspositionTable,
     abort: &AtomicBool,
 ) -> SearchResult {
+    tt.increase_age();
     abort.store(false, Ordering::Relaxed);
 
     let mut main = Worker::new(pos.clone(), tt.view(), time.clone(), abort, true);

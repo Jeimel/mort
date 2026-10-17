@@ -30,11 +30,13 @@ pub struct TranspositionEntry {
     pub(super) mov: Option<Move>,
     pub(super) score: i16,
     pub(super) depth: i8,
-    pub(super) bound: Bound,
+    pub(super) meta: u8,
 }
 
 impl TranspositionEntry {
-    pub const SIZE: usize = std::mem::size_of::<TranspositionEntry>();
+    pub(super) const AGE_MASK: u8 = 0b0011_1111;
+
+    const BOUND_BITS: u8 = 2;
 
     pub fn mov(&self) -> Option<Move> {
         self.mov
@@ -49,7 +51,20 @@ impl TranspositionEntry {
     }
 
     pub fn bound(&self) -> Bound {
-        self.bound
+        match self.meta & 0b11 {
+            0 => Bound::Exact,
+            1 => Bound::Upper,
+            2 => Bound::Lower,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn age(&self) -> u8 {
+        self.meta >> Self::BOUND_BITS
+    }
+
+    pub(super) fn pack(age: u8, bound: Bound) -> u8 {
+        (age << Self::BOUND_BITS) | bound as u8
     }
 }
 

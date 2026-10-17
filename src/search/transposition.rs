@@ -1,3 +1,4 @@
+mod bucket;
 mod entry;
 mod table;
 mod view;

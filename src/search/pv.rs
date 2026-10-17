@@ -90,32 +90,40 @@ pub fn pvs<TYPE: NodeType>(
 
     let zobrist = worker.pos.zobrist();
 
-    let tt_move = if let Some(entry) = worker.tt.probe(zobrist, height)
-        && !entry
-            .mov()
-            .is_some_and(|mov| !worker.pos.pseudo_legal(mov) || !worker.pos.legal(mov))
-    {
-        if !TYPE::PV
-            && entry.depth() >= depth
-            && match entry.bound() {
-                Bound::Exact => true,
-                Bound::Upper => entry.score() <= alpha,
-                Bound::Lower => entry.score() >= beta,
-            }
-        {
-            return entry.score();
-        }
+    #[rustfmt::skip]
+    let entry = worker.tt.probe(zobrist, height).filter(|entry| {
+        entry.mov().is_none_or(|mov| worker.pos.pseudo_legal(mov) && worker.pos.legal(mov))
+    });
 
-        entry.mov()
-    } else {
-        None
-    };
+    if let Some(entry) = entry
+        && !TYPE::PV
+        && entry.depth() >= depth
+        && match entry.bound() {
+            Bound::Exact => true,
+            Bound::Upper => entry.score() <= alpha,
+            Bound::Lower => entry.score() >= beta,
+        }
+    {
+        return entry.score();
+    }
+
+    let tt_move = entry.and_then(|entry| entry.mov());
 
     let check = worker.pos.check();
     let eval = if check { -INF } else { evaluate(&worker.pos) };
     let margin = 80 * depth;
 
     worker.stack[height].eval = eval;
+
+    let eval = match entry {
+        Some(entry) if !check => match entry.bound() {
+            Bound::Exact => entry.score(),
+            Bound::Lower if entry.score() > eval => entry.score(),
+            Bound::Upper if entry.score() < eval => entry.score(),
+            _ => eval,
+        },
+        _ => eval,
+    };
 
     if !TYPE::PV && !check && depth <= 8 && beta.abs() < MATE - MAX_PLY && eval >= beta + margin {
         return eval;
@@ -175,6 +183,10 @@ pub fn pvs<TYPE: NodeType>(
         }
 
         worker.pos.unmake_move(mov);
+
+        if worker.abort() {
+            return DRAW;
+        }
 
         debug_assert!(-INF < score && score < INF);
 

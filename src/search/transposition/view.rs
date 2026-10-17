@@ -21,13 +21,18 @@ impl TranspositionView<'_> {
         let index = self.index(zobrist);
         let entry = TranspositionEntry::from(&self.table[index]);
         let key = Self::checksum(zobrist);
+        let equal = entry.key == key;
 
         // We keep the entry, if
         // 1. the entry is occupied by the same position,
-        // 2. and the existing entry is at least as deep
-        if entry.key == key && entry.depth() >= depth {
+        // 2. the new entry is not exact,
+        // 3. and the existing entry is much deeper
+        if equal && bound != Bound::Exact && entry.depth() >= depth + 4 {
             return;
         }
+
+        // We keep the old move on a fail-low, if it is the same position
+        let mov = if equal { mov.or(entry.mov) } else { mov };
 
         if score.abs() > MATE {
             score += score.signum() * ply as i32;
@@ -36,8 +41,8 @@ impl TranspositionView<'_> {
         let entry = TranspositionEntry {
             key,
             mov,
-            score: score.try_into().expect("`score` must be in range of i16"),
-            depth: depth.try_into().expect("`depth` must be in range of i8"),
+            score: score.try_into().expect("score must be in range of i16"),
+            depth: depth.try_into().expect("depth must be in range of i8"),
             bound,
         };
 
